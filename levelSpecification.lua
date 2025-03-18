@@ -1,0 +1,5 @@
+--Level definition
+--Each level will have a base specification of car, with the option to change a handful of parameters.
+	--Car specificaiton will be based on vehicle components, defined in xml files.
+--It will also define the map that the user will drive on.
+	--Maps are formed of terrain, terrain colour, near backdrop and distant backdrop.
