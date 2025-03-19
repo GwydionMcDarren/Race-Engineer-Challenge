@@ -40,7 +40,6 @@ end
 --nextStage method: based on the outcome of the current stage, 
 
 function levels:nextStage(data)
-	print(currentLevel.stage)
 	local decisionIndex, playerData = self:passFail(self.stage,data) or 1
 	
 	self.stage = self.stage + decisionIndex
@@ -52,8 +51,6 @@ function levels:nextStage(data)
 	end
 	self.data = data
 	iterativeTablePrint(currentLevel.data)
-	print("-- STAGE --")
-	print(currentLevel.stage)
 end
 --Default sandbox level is also defined
 

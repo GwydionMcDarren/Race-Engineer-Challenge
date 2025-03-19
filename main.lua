@@ -4,7 +4,7 @@ UNIT_TESTS = false
 DEBUG = false
 g = 9.81
 
-
+print(string.rep("#",1e3))
 win = am.window{
     title = "RE Challenge",
     width = 800,
@@ -42,10 +42,10 @@ sandbox = game:new{
 			},
 			{
 				axle:new{
-			
+					inertia = {y = 10}
 				},
 				axle:new{
-			
+					inertia = {y = 10}
 				},
 			},
 			{
@@ -118,10 +118,10 @@ level1 = levels:new{
 	},
 	[3] = menu:new{
 		am.rect(-400,-300,400,300,vec4(0,0.5,0.5,1)),
-		am.translate(vec2(0,200))^liveText("You ##D the level",vec4(1,1,1,1),2),
+		am.translate(vec2(0,200))^liveText("You ##D the level",vec4(1,1,1,1),1),
 		newButton{
 			size=vec2(150,50),
-			position=vec2(0,0),
+			position=vec2(-75,-25),
 			colour=vec4(0,0.9,0.4,1),
 			label="Continue",
 			labelColour=vec4(1,1,1,1),

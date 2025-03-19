@@ -1,5 +1,5 @@
 require 'simulation.component'
-require 'simulation.carSolver'
+require 'simulation.carSolver3'
 
 car = {}
 
@@ -21,7 +21,6 @@ function car:iterateOverDoF()
 			return i, self.axles[math.ceil(b/3)], self.axles[math.ceil(b/3)].dimensions[(b-1)%3+1]
 		elseif c<cMax then 
 			c=c+1 
-			iterativeTablePrint(self.powertrain)
 			return i, self.powertrain[c], self.powertrain[c].dimensions[1]
 		else return nil end
 	end
@@ -100,26 +99,39 @@ function car:new(body,axles,powertrain)
 	for index,axle in ipairs(newCar.axles) do
 		axle.axleIndex = index
 	end
-	newCar.solver = solver
+	newCar.solver = carSolver3
 	return newCar
 end
 
 function car:createNode()
-	local carNode = am.group()
-	carNode:append(self.body.sprite)
+	local carParts = am.group()
+	local carNode = am.group(am.translate(self.body.params.massOffset)^am.rotate(0)^carParts,am.text(""))
+	carParts:append(self.body.sprite)
 	for index,axles in pairs(self.axles) do
-		carNode:append(self.body.axleOffsetNodes[index]^self.axles[index].sprite)
+		carParts:append(self.body.axleOffsetNodes[index]^self.axles[index].sprite)
 	end
+	self.body.state.y[0] = 1
 	carNode.parent = self
-	carNode:action( function ()
-		self:solver(am.delta_time)
+	carNode:action( function (bodySprite)
+		ts = 1/(60*4)
+		timestep = 0
+		while timestep < am.delta_time do
+			timestep = timestep + self:solver(ts)
+		end
 		for index,component in self:iterateOverComponents() do
 			component:update()
 		end
+		bodySprite"translate".position2d = bodySprite.parent.body.params.massOffset + vec2(bodySprite.parent.body.state.x[0],bodySprite.parent.body.state.y[0])*50
+		bodySprite"rotate".angle = bodySprite.parent.body.state.theta[0]
+		--bodySprite"text".text = ""..tostring(bodySprite.parent.body.state.y[0]).." "..tostring(bodySprite.parent.body.state.y[1]).."\n"..tostring(bodySprite.parent.axles[1].state.y[0]).." "..tostring(bodySprite.parent.axles[1].state.y[1])
 	end
 	)
 	return carNode
 end
+
+--Controls
+--This contains functions to update controller state by player or computer
+--These control values can then be accessed by different components do decide state
 
 --telemetry
 

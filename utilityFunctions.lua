@@ -53,19 +53,6 @@ function iterativeTablePrint(t,i)
 			end
 		end
 	end
-	if t.__index then
-		print("__index:")
-		for k,v in pairs(t.__index) do
-			if k~="__index" and k~="parent" then --If __index or parent is set then we get recursive infinite loops
-				if type(v) == "table" then
-					print(string.rep("\t",i),k..":")
-					iterativeTablePrint(v,i+1)
-				else
-					print(string.rep("\t",i),k,v)
-				end
-			end
-		end
-	end
 end
 
 function listTable(t,i)
@@ -76,6 +63,24 @@ function listTable(t,i)
 		return
 	end
 end
+
+function matrixRMS(m)
+	local squareSum, elements = 0, 0
+	for i=1,#m do
+		if type(m[i]) == "table" then
+			for j=1,#m[i] do
+				squareSum = squareSum + (m[i][j])^2
+				elements = elements + 1
+			end
+		else
+			squareSum = squareSum + (m[i])^2
+			elements = elements + 1
+		end
+	end
+	local meanSquare = squareSum/elements
+	return math.sqrt(meanSquare)
+end
+	
 
 if UNIT_TESTS then
 	print("-- utilityFunctions.lua unit tests --")
