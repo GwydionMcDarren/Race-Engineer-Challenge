@@ -4,7 +4,6 @@ game = {}
 --Typically it will contain a car, a telemerty specification for that car, in order to collect score data, a backdrop, and a road surface.
 --It will usually be defined and containted within a level object
 
-
 function game:new(g)
 	newGame = g or {}
 	assert(#g.vehicle >= 1,"Error! No vehicles defined for game object")
@@ -18,12 +17,26 @@ end
 
 function game:start()
 	currentGame = self
-	win.scene:append(self.backdrop)
-	win.scene:append(self.roadNode:tag"roadSurface")
-	for index,vehicle in pairs(self.vehicle) do
-		win.scene:append(vehicle:createNode())
+	self.mobileScene = am.translate(vec2(0,0))^am.group()
+	self.mobileScene:action( function (mobileScene)
+			for index, vehicle in ipairs(self.vehicle) do
+				if vehicle.body.state.x[0] > self.roadNode.x[#self.roadNode.x] then vehicle.body.state.x[0] = self.roadNode.x[#self.roadNode.x] end
+			end
+		end
+	)
+	for i=1,self.roadNode.x[#self.roadNode.x],50 do
+		self.mobileScene:append(am.translate(vec2(i*50,0))^self.backdrop)
 	end
-	--win.scene:append(self.gui)
+	self.mobileScene:append(self.roadNode:tag"roadSurface")
+	for index,vehicle in pairs(self.vehicle) do
+		self.mobileScene:append(vehicle:createNode())
+	end
+	win.scene:append(self.mobileScene)
+	win.scene:append(self.gui)
+end
+
+function game:updateCamera(car)
+	self.mobileScene"translate".position2d = vec2(-car.body.state.x[0]*50,-car.body.state.y[0]*50)
 end
 
 function game:pause()
@@ -38,7 +51,7 @@ end
 
 function game:kill()
 	currentGame = nil
-	win.scene:remove(self.backdrop)
+	win.scene:remove(self.mobileScene)
 	for index,vehicle in pairs(self.vehicle) do
 		win.scene:remove(vehicle)
 	end

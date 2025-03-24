@@ -42,6 +42,27 @@ function car:iterateOverComponents()
 	end
 end
 
+function car:iterateOverAxles()
+	local b = 0
+	local bMax = #self.axles
+	local i=0
+	return function () 
+		i=i+1
+		if b<bMax then b=b+1 return i, self.axles[b]
+		else return nil end
+	end
+end
+
+function car:iterateOverPowertrain()
+	local c = 0
+	local cMax = #self.powertrain
+	local i=0
+	return function () 
+		if c<cMax then c=c+1 return i, self.powertrain[c]
+		else return nil end
+	end
+end
+
 function car:getNumDoF()
 	local bodyDoF = 3
 	local axlesDoF = #self.axles * 3
@@ -68,19 +89,43 @@ end
 --The diemnsion in that component it is constrained to
 --The ratio of motion between the two components
 --Current state of the constraint (for stick slip, whether it is stick or slip)
-function car:applyConstraints(component,dimension,dimension,forceTable,massMatrixTable) -- What are we trying to do here?
-	for targetComponent,targetDimension,constraint in self:iterateOverDoF() do
-		local targetDimension = constraint.dimension
-		local ratio = constraint.r
-		local constraintType = constraint.type
-		if constraintType == "fixed" then
-			local targetIndex = 0
+function car:applyConstraints(component,forceIn,dimension,forceTable,massMatrixTable) -- What are we trying to do here?
+	--Iterate over powertrain members to do something
+	for index,powertrainComponent in self:iterateOverPowertrain() do
+		--??
+	end
+	local bodyAngle = self.body.state.theta[0]
+	local bodyXForceIndex = self.body.firstDimensionIndex * 2
+	local bodyYForceIndex = (self.body.firstDimensionIndex + 1) * 2
+	local bodyThetaForceIndex = (self.body.firstDimensionIndex + 2) * 2
+	for index,axle in self:iterateOverAxles() do
+		local axleXForceIndex = axle.firstDimensionIndex * 2
+		local axleOffset = -self.body.params.axleOffsets[index]/50
+		for j=1,2 do -- iterate twice to get both the constant and frictional force components
+			local axleForces = self:forceDirectional(axle:vecToGlobalCoords(vec2(forceTable[axleXForceIndex][j], 0)), axle:vecToGlobalCoords(self.body.params.axleOffsets[index]/50+vec2(0,axle.state.y[0]) )+ vec2(0,-axle.params.radius))
+			forceTable[axleXForceIndex] = {0,0}
+			forceTable[bodyXForceIndex][j] = forceTable[bodyXForceIndex][j] + axleForces.x
+			forceTable[bodyYForceIndex][j] = forceTable[bodyYForceIndex][j] + axleForces.y
+			forceTable[bodyThetaForceIndex][j] = forceTable[bodyThetaForceIndex][j] + axleForces.theta
 		end
+		for j=1,#forceTable do
+			massMatrixTable[axleXForceIndex][j] = 0
+		end
+			massMatrixTable[axleXForceIndex][axleXForceIndex] = 1
 	end
 	return forceTable, massMatrixTable
 end
 
-function car:new(body,axles,powertrain)
+function car:forceDirectional(forceUV, locationXY)
+	local forceVector = {}
+	forceVector.x = forceUV.x
+	forceVector.y = forceUV.y
+	local locationYX = vec2(locationXY.y, locationXY.x)
+	forceVector.theta = math.dot(vec2(forceUV.x,-forceUV.y),-locationYX)
+	return forceVector
+end
+
+function car:new(body,axles,powertrain, isPlayer)
 	local newCar =  {body = body, axles = axles, powertrain = powertrain}
 	setmetatable(newCar, self)
 	self.__index = self
@@ -99,20 +144,61 @@ function car:new(body,axles,powertrain)
 	for index,axle in ipairs(newCar.axles) do
 		axle.axleIndex = index
 	end
+	newCar.controls = {
+		thottle = 0,
+		brake = 0,
+		gear_up = false,
+		gear_down = false,
+		clutch = 0,
+		}
 	newCar.solver = carSolver3
 	return newCar
 end
 
+function car:updateControls()
+	--gear changes use key_pressed
+	if win:key_pressed("a") then
+		self.controls.gear_up = true
+		self.controls.gear_down = false
+	elseif win:key_pressed("z") then
+		self.controls.gear_up = false
+		self.controls.gear_down = true
+	else
+		self.controls.gear_up = false
+		self.controls.gear_down = false
+	end
+	--other controls use key_down
+	if win:key_down("up") then
+		self.controls.throttle = 1
+	else
+		self.controls.throttle = 0
+	end
+	if win:key_down("down") then
+		self.controls.brake = 1
+	else
+		self.controls.brake = 0
+	end
+	if win:key_down("space") then
+		self.controls.clutch = 1
+	else
+		self.controls.clutch = 0
+	end
+end
+	
 function car:createNode()
 	local carParts = am.group()
-	local carNode = am.group(am.translate(self.body.params.massOffset)^am.rotate(0)^carParts,am.text(""))
+	local carNode = am.group(am.translate(vec2(0,0))^am.rotate(0)^carParts,am.text(""))
 	carParts:append(self.body.sprite)
 	for index,axles in pairs(self.axles) do
 		carParts:append(self.body.axleOffsetNodes[index]^self.axles[index].sprite)
 	end
-	self.body.state.y[0] = 1
+	carNode:append(trackingNode)
+	self.body.state.y[0] = 0.3
+	self.body.state.x[0] = 0
+	self.body.state.x[1] = 0
 	carNode.parent = self
 	carNode:action( function (bodySprite)
+		if not win:key_down("space") then
 		ts = 1/(60*4)
 		timestep = 0
 		while timestep < am.delta_time do
@@ -121,7 +207,16 @@ function car:createNode()
 		for index,component in self:iterateOverComponents() do
 			component:update()
 		end
-		bodySprite"translate".position2d = bodySprite.parent.body.params.massOffset + vec2(bodySprite.parent.body.state.x[0],bodySprite.parent.body.state.y[0])*50
+		end
+		if win:key_pressed("q") then
+			print("STATE DUMP\n")
+			for index, component, dimension in self:iterateOverDoF() do
+				print(component.state[dimension][1])
+			end
+		end
+		currentGame:updateCamera(self)
+		self:updateControls()
+		bodySprite"translate".position2d = vec2(bodySprite.parent.body.state.x[0],bodySprite.parent.body.state.y[0])*50
 		bodySprite"rotate".angle = bodySprite.parent.body.state.theta[0]
 		--bodySprite"text".text = ""..tostring(bodySprite.parent.body.state.y[0]).." "..tostring(bodySprite.parent.body.state.y[1]).."\n"..tostring(bodySprite.parent.axles[1].state.y[0]).." "..tostring(bodySprite.parent.axles[1].state.y[1])
 	end

@@ -27,7 +27,7 @@ function roadSurface:new(X,Y)
 		vec2(X[#X]*pixelScale,-50*pixelScale)},
 		}
 	local prog = am.program([[
-		precision lowp float;
+		precision highp float;
 		attribute vec2 vert;
 		uniform mat4 MV;
 		uniform mat4 P;
@@ -35,7 +35,7 @@ function roadSurface:new(X,Y)
 			gl_Position = P * MV * vec4(vert, 0.0, 1.0);
 		}
 	]], [[
-		precision lowp float;
+		precision highp float;
 		void main() {
 			gl_FragColor = vec4(0.1, 0.1, 0.1, 1.0);
 		}
@@ -58,6 +58,7 @@ function roadSurface:getHeight(x)
 			break 
 		end
 	end
+	if not highIndex then highIndex = #self.x end
 	local lowIndex = highIndex - 1
 	local lowX = self.x[lowIndex]
 	local highX = self.x[highIndex]

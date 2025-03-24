@@ -23,17 +23,43 @@ sky = am.sprite("graphics/sky.png")
 largeRect = am.group{am.rect(10,-50,40,-55,vec4(0.8,0.8,0.8,1)),am.rect(0,-31,100,0,vec4(0.5,0.5,0.5,1))}
 backgroundHillSprite = am.sprite("graphics/largeHills.png")
 foregroundHillSprite = am.sprite("graphics/hills.png")
-
+trackingNode = am.group(am.circle(vec2(0,0),2,vec4(1,1,0,1)), am.line(vec2(0,0),vec2(1,1)))
 require 'utilityFunctions'
 
 require 'GUI.menuElements'
 require 'GUI.game'
 require 'GUI.levels'
 require 'GUI.menus'
+require "GUI.gui"
 require 'simulation.roadSurface'
 require 'simulation.tyreForce'
 require 'simulation.car'
-
+function createWavyRoad(xOrY)
+	local output = {}
+	if xOrY == "x" then 
+		for i=1,2000,1 do
+			table.insert(output, i)
+		end
+	else
+		for i=1,2000,1 do
+			if i<300 then
+				table.insert(output,0 + math.random()*0.05)
+			elseif i>500 then
+				table.insert(output,20 + math.random()*0.05)
+			else
+				local c = (i-300)/(500-300)
+				y1 = 0*(1-c)^3
+				y2 = 0*3*(1-c)^2*c
+				y3 = 3*(1-c)*(c^2)
+				y4 = c^3
+				y = 20*(y1+y2+y3+y4) + math.random()*0.05
+			table.insert(output, y)--0.4*math.sin(i/(15*math.pi))+1)
+			end
+		end
+	end
+	return output
+end
+		
 sandbox = game:new{
 	vehicle = {
 		car:new(
@@ -42,10 +68,10 @@ sandbox = game:new{
 			},
 			{
 				axle:new{
-					inertia = {y = 10}
+					inertia = {y = 10, x=10},
 				},
 				axle:new{
-					inertia = {y = 10}
+					inertia = {y = 10, x=10},
 				},
 			},
 			{
@@ -55,8 +81,16 @@ sandbox = game:new{
 			}
 		),
 	},
-	roadNode = roadSurface:new({0,500,1000,1500,2000,2500,3000},{0,0,0,0,0,0,0}), --Define a long, flat road
-	backdrop = am.rect(0,0,100,100,vec4(1,0,0,1)),
+	roadNode = roadSurface:new({0,30000},{0,0}),--createWavyRoad("x"),createWavyRoad("y")),--{0,30,1000,1500,2000,2500,3000},{0,0,100,0,0,0,0}), --
+	backdrop = am.rect(0,0,100,5500,vec4(1,0,0,1)),
+	gui = gui:newElement{
+		trackingVariable = "front_axle_speed",
+		unit_scaling = 0.3*2.25,
+		max = 135,
+		min = 0,
+		valueIsAbs = true,
+		location = vec2(0,-150),
+	}
 }
 
 level1 = levels:new{

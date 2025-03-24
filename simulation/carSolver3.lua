@@ -14,8 +14,9 @@ function carSolver3(car,dt)
 	k2 = stateDeriv(car,state+k1*dt/2)
 	k3 = stateDeriv(car,state+k2*dt/2)
 	k4 = stateDeriv(car,state+k3*dt)	
-	
 	local newState = state + dt * (k1+2*k2+2*k3+k4) / 6
+	--print("V-A:")
+	--print((k1+2*k2+2*k3+k4) / 6)
 	assignState(car,newState)
 	return dt
 end
@@ -50,17 +51,14 @@ function stateDeriv(car, state)
 	end
 	--Assemble force matrix
 	for i,component,dimension in car:iterateOverDoF() do
-			forceTable[2*i] = component:netForce(dimension)
-			forceTable[2*i-1] = {state[2*i][1], 0}
-		end
-		--Apply constraints/BCs
-	--Resolve constraints
-	for componentDimensionIndex,component,dimension in car:iterateOverDoF() do
-		--forceTable,massMatrixTable = car:applyConstraints(componentDimensionIndex,component,dimension,forceTable,massMatrixTable)
+		forceTable[2*i] = component:netForce(dimension)
+		forceTable[2*i-1] = {state[2*i][1], 0}
 	end
+	--Resolve constraints
+	forceTable,massMatrixTable = car:applyConstraints(componentDimensionIndex,component,dimension,forceTable,massMatrixTable)
 	--Resolve frictional forces
 	for i=1,#forceTable do
-		if math.sign(forceTable[i][1]) ~= math.sign(forceTable[i][2]) and math.abs(forceTable[i][1]) < math.abs(forceTable[i][2]) then
+		if math.abs(forceTable[i][1]) < math.abs(forceTable[i][2]) then
 			forceTable[i] = {0}
 		else
 			forceTable[i] = {(forceTable[i][1] + forceTable[i][2]) or 0}
