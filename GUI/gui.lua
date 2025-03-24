@@ -13,6 +13,7 @@ function gui:newElement(e)
 		end
 		newGuiNode:append(am.scale(2)^am.rotate(0):tag("needle_angle")^am.translate(vec2(0,0)):tag("needle_location")^am.sprite("graphics/speedo-needle.png"))
 		newGuiNode = am.translate(e.location)^newGuiNode
+		if e.valueIsAbs then newGuiNode.valueIsAbs = true end
 		newGuiNode:action(
 			function (guiNode)
 				local value = guiNode:getTrackingValue()*unit_scaling

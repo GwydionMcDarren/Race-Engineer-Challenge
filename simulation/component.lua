@@ -29,11 +29,26 @@ function component:getDimensionIndex(dimension)
 	print("Warning: Dimension with name '"..dimension.."' not found in component "..self.name)
 end
 
-function component:initialise()
-	self.state = {}
+function component:newInstance(adjustmentList)
+	local newInstance = {}
+	newInstance.state = {}
 	for index,dimension in pairs(self.dimensions) do
-		self.state[dimension] = {[0] = 0,0}
+		newInstance.state[dimension] = {[0] = 0,0}
 	end
+	local adjustmentsList = adjustmentsList or {}
+	for k,v in pairs(adjustmentsList) do
+		newInstance.params.k = v
+	end
+	self.__index = self
+	setmetatable(newInstance, self)
+	print("--", newInstance.name, "--")
+	for k,v in pairs(newInstance.state) do
+		print(k,v)
+	end
+	if type(self.createNode) == "function" then
+		newInstance.node = newInstance:createNode()
+	end
+	return newInstance
 end
 
 --Cases of components:
@@ -57,7 +72,6 @@ function body:new(b)
 	newBody.inertia.theta = b.rInertia or 1e4
 	newBody.params = {
 		massOffset = (b.offset or vec2(0,0)),
-		brakeApplication = 0,
 		numAxles = (b.axles or 2),
 		dragCoefficient = (b.dragCoefficient or 0.3),
 		axleOffsets = b.axleOffsets,
@@ -71,7 +85,7 @@ function body:new(b)
 	for index,offset in pairs(newBody.params.axleOffsets) do
 		newBody.axleOffsetNodes[index] = am.translate(offset)
 	end
-	newBody.sprite = am.sprite((b.sprite or "graphics/tigra-50.png"))
+	newBody.sprite = b.sprite or "graphics/tigra-50.png"
 	setmetatable(newBody, self)
 	return newBody
 end
@@ -100,6 +114,12 @@ function body:update()
 	return nil
 end
 
+function body:createNode()
+	local spriteNode = am.sprite((self.sprite))
+	spriteNode.parent = self
+	return spriteNode
+end
+
 
 
 --Axle
@@ -120,23 +140,39 @@ function axle:new(a)
 	newAxle.inertia.theta = a.rInertia or 10
 	newAxle.params = {
 		radius = (a.radius or 0.3),
-		springRate = (a.springRate or 30e4),
-		dampingRate = (a.dampingRate or 1e3),
-		maxBrakeTorque = (a.maxBrakeTorque or 1e3),
+		springRate = (a.springRate or 30e3),
+		dampingRate = (a.dampingRate or 5e3),
+		maxBrakeTorque = (a.maxBrakeTorque or 2e3),
 		tyreStiffness = (a.tyreStiffness or 1e6),
 		brakeApplication = 0,
 		maxTravel = 0.5,
+		peakFriction = a.peakFriction or 1.22,
+		maxSlipFriction = a.maxSlipFriction or 1.03,
 	}
 	newAxle.constraints = {x = {body = {x="fixed"}}}
+	newAxle.sprite = a.sprite or "graphics/wheel.png"--[[
 	newAxle.sprite = am.translate(vec2(0,0))^am.rotate(0)^am.sprite((a.sprite or "graphics/wheel.png"))
+	newAxle.sprite.parent = newAxle
 	newAxle.sprite:action( function (axleSprite)
-			axleSprite"translate".position2d = vec2(newAxle.state.x[0],newAxle.state.y[0])*50
-			axleSprite"rotate".angle = -newAxle.state.theta[0]
+			axleSprite"translate".position2d = vec2(axleSprite.parent.state.x[0],axleSprite.parent.state.y[0])*50
+			axleSprite"rotate".angle = -axleSprite.parent.state.theta[0]
 		end
-	)
+	)]]
 	setmetatable(newAxle, self)
 	return newAxle
 end
+
+function axle:createNode()
+	local spriteNode = am.translate(vec2(0,0))^am.rotate(0)^am.sprite((self.sprite))
+	spriteNode.parent = self
+	spriteNode:action( function (axleSprite)
+			axleSprite"translate".position2d = vec2(axleSprite.parent.state.x[0],axleSprite.parent.state.y[0])*50
+			axleSprite"rotate".angle = -axleSprite.parent.state.theta[0]
+		end
+	)
+	return spriteNode
+end
+	
 
 function axle:update()
 	--self.state.y[0] = math.max(math.min(self.params.radius,self.state.y[0]),-self.params.radius)
@@ -271,7 +307,7 @@ function axle:netForce(dimension)
 		end
 	--print(self.axleIndex, dimension, constForce)
 	elseif dimension == "theta" then
-		if win:key_down("up") then constForce = math.min(750,math.abs(7.5e3/self.state.theta[1])) else constForce = 0 end
+		if win:key_down("up") then constForce = math.min(1350/2,math.abs(37e4/self.state.theta[1])) else constForce = 0 end
 		--constForce = 0
 		frictionForce = 0
 		if roadFrictionRefSpeed == 0 then 

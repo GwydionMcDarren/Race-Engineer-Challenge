@@ -4,7 +4,7 @@ UNIT_TESTS = false
 DEBUG = false
 g = 9.81
 num_steps = 3
-print(string.rep("#",1e3))
+
 win = am.window{
     title = "RE Challenge",
     width = 800,
@@ -37,22 +37,22 @@ require 'simulation.component_library'
 function createWavyRoad(xOrY)
 	local output = {}
 	if xOrY == "x" then 
-		for i=1,2000,1 do
+		for i=1,2000,0.5 do
 			table.insert(output, i)
 		end
 	else
-		for i=1,2000,1 do
+		for i=1,2000,0.5 do
 			if i<300 then
-				table.insert(output,0 + math.random()*0.05)
+				table.insert(output,0 + math.sin(i)*0.2)
 			elseif i>500 then
-				table.insert(output,20 + math.random()*0.05)
+				table.insert(output,50 + math.sin(i)*0.2)
 			else
 				local c = (i-300)/(500-300)
 				y1 = 0*(1-c)^3
 				y2 = 0*3*(1-c)^2*c
 				y3 = 3*(1-c)*(c^2)
 				y4 = c^3
-				y = 20*(y1+y2+y3+y4) + math.random()*0.05
+				y = 50*(y1+y2+y3+y4) + math.sin(i)*0.2
 			table.insert(output, y)--0.4*math.sin(i/(15*math.pi))+1)
 			end
 		end
@@ -63,14 +63,10 @@ end
 sandbox = game:new{
 	vehicle = {
 		car:new(
-			componentLibrary.bodies.sedan,
+			componentLibrary.bodies.old_hatchback,
 			{
-				axle:new{
-					inertia = {y = 10, x=10},
-				},
-				axle:new{
-					inertia = {y = 10, x=10},
-				},
+				componentLibrary.axles.old_wheel,
+				componentLibrary.axles.old_wheel,
 			},
 			{
 				powertrainPart:new{
@@ -79,17 +75,20 @@ sandbox = game:new{
 			}
 		),
 	},
-	roadNode = roadSurface:new({0,30000},{0,0}),--createWavyRoad("x"),createWavyRoad("y")),--{0,30,1000,1500,2000,2500,3000},{0,0,100,0,0,0,0}), --
+	roadNode = roadSurface:new(createWavyRoad("x"),createWavyRoad("y")),--{0,30,1000,1500,2000,2500,3000},{0,0,100,0,0,0,0}), --
 	backdrop = am.rect(0,0,100,5500,vec4(1,0,0,1)),
 	gui = gui:newElement{
 		trackingVariable = "front_axle_speed",
 		unit_scaling = 0.3*2.25,
-		max = 135,
+		max = 90,
 		min = 0,
 		valueIsAbs = true,
 		location = vec2(0,-150),
 	}
 }
+
+--level1_game = sandbox
+--level1_game.vehicle[1].body = componentLibrary.bodies.hatchback
 
 level1 = levels:new{
 	name = "Level 1",

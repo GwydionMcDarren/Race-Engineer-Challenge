@@ -1,6 +1,6 @@
 matrix = require('3rd_party.matrix')
 
-function carSolver3(car,dt)
+function carSolver(car,dt)
 	--Create state vector
 	state = {}
 	local state = {}
@@ -15,8 +15,6 @@ function carSolver3(car,dt)
 	k3 = stateDeriv(car,state+k2*dt/2)
 	k4 = stateDeriv(car,state+k3*dt)	
 	local newState = state + dt * (k1+2*k2+2*k3+k4) / 6
-	--print("V-A:")
-	--print((k1+2*k2+2*k3+k4) / 6)
 	assignState(car,newState)
 	return dt
 end
@@ -39,12 +37,7 @@ function stateDeriv(car, state)
 	--Assemble mass matrix
 	for i,component in car:iterateOverComponents() do
 		if type(component.recalc) == "function" then
-			print(component.name)
-			component.calcs = component:recalc()
-			print(car.axles)
-			print(car.axles[1])
-			print(car.axles[1].calcs)
-			print(car.axles[1].calcs.getSuspensionForce)
+			component:recalc()
 		end
 	end
 	for i,component,dimension in car:iterateOverDoF() do

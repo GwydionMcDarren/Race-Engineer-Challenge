@@ -1,11 +1,11 @@
 function tyreForce(axle,body,normalForce)
 	local longitudinalSlip = axle.calcs.getSlip
-	local peakSlip = 0.15
+	local peakSlip = 0.015
 	local slipDirection = math.sign(longitudinalSlip)
 	longitudinalSlip = math.abs(longitudinalSlip)
 	--Positive slip means force acts forward on axle, negative slip means force acts backwards on axle
-	local peakFriction = 1.22 --1.22 p57 of Motor Vehicle Dynamics (Genta, 1997)
-	local maxSlipFriction = 1.03 --1.03 p57 of Motor Vehicle Dynamics (Genta, 1997)
+	local peakFriction = axle.params.peakFriction --1.22 p57 of Motor Vehicle Dynamics (Genta, 1997)
+	local maxSlipFriction = axle.params.maxSlipFriction --1.03 p57 of Motor Vehicle Dynamics (Genta, 1997)
 	local coefficientOfFriction = 0
 	if math.abs(longitudinalSlip) < peakSlip then
 		coefficientOfFriction = longitudinalSlip * peakFriction/peakSlip

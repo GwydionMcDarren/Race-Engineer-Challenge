@@ -2,6 +2,7 @@ require 'simulation.component'
 require 'simulation.carSolver3'
 
 car = {}
+car.__index = car
 
 function car:iterateOverDoF()
 	local a = 0
@@ -125,14 +126,26 @@ function car:forceDirectional(forceUV, locationXY)
 	return forceVector
 end
 
-function car:new(body,axles,powertrain, isPlayer)
-	local newCar =  {body = body, axles = axles, powertrain = powertrain}
+function car:new(body,axles,powertrain, isPlayer, adjustments)
+	local newCar =  {}
+	local adjustments = adjustments or {}
+	newCar.body = body:newInstance(adjustments.body)
+	newCar.body.dimensionIndices = {}
+	newCar.axles = {}
+	adjustments.axles = adjustments.axles or {}
+	newCar.powertrain = {}
+	adjustments.powertrain = adjustments.powertrain or {}
+	for i,v in ipairs(axles) do
+		newCar.axles[i] = axles[i]:newInstance(adjustments.axles[i])
+		newCar.axles[i].dimensionIndices = {}
+	end
+	for i,v in ipairs(powertrain) do
+		newCar.powertrain[i] = powertrain[i]:newInstance(adjustments.powertrain[i])
+		newCar.powertrain[i].dimensionIndices = {}
+	end
 	setmetatable(newCar, self)
-	self.__index = self
 	--Iterate over car dimensions and initialise state
 	for componentDimensionIndex,component,dimension in newCar:iterateOverDoF() do
-		component:initialise()
-		if not component.dimensionIndices then component.dimensionIndices = {} end
 		table.insert(component.dimensionIndices,componentDimensionIndex)
 	end
 	--Iterate over car components to set the lowest dimension index for each component
@@ -140,6 +153,7 @@ function car:new(body,axles,powertrain, isPlayer)
 		component.firstDimensionIndex = math.min(listTable(component.dimensionIndices))
 		component.componentIndex = componentIndex
 		component.parent = newCar
+		print(component.firstDimensionIndex, component.name)
 	end
 	for index,axle in ipairs(newCar.axles) do
 		axle.axleIndex = index
@@ -151,7 +165,7 @@ function car:new(body,axles,powertrain, isPlayer)
 		gear_down = false,
 		clutch = 0,
 		}
-	newCar.solver = carSolver3
+	newCar.solver = carSolver
 	return newCar
 end
 
@@ -188,11 +202,11 @@ end
 function car:createNode()
 	local carParts = am.group()
 	local carNode = am.group(am.translate(vec2(0,0))^am.rotate(0)^carParts,am.text(""))
-	carParts:append(self.body.sprite)
+	carParts:append(self.body.node)
 	for index,axles in pairs(self.axles) do
-		carParts:append(self.body.axleOffsetNodes[index]^self.axles[index].sprite)
+		carParts:append(self.body.axleOffsetNodes[index]^self.axles[index].node)
 	end
-	self.body.state.y[0] = 0.5
+	self.body.state.y[0] = (-self.body.params.axleOffsets[1].y+1)/50
 	self.body.state.x[0] = 0
 	self.body.state.x[1] = 0
 	carNode.parent = self
@@ -301,8 +315,5 @@ if UNIT_TESTS then
 	iterativeTablePrint(testCar)
 	print("-- car.lua tests complete --")
 end
-
-
-
 
 return car
