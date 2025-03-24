@@ -80,7 +80,7 @@ function body:netForce(dimension)
 	local suspensionForce = {x=0,y=0,theta=0}
 	local wheelLongitudinalForce = {x=0,y=0,theta=0}
 	for index,axle in ipairs(self.parent.axles) do
-		local suspensionForceI = self.parent:forceDirectional(axle:vecToGlobalCoords(vec2(0,axle:getSuspensionForce())), axle:vecToGlobalCoords(self.params.axleOffsets[index]/50+vec2(0,axle.state.y[0])))
+		local suspensionForceI = self.parent:forceDirectional(axle:vecToGlobalCoords(vec2(0,axle.calcs.getSuspensionForce)), axle:vecToGlobalCoords(self.params.axleOffsets[index]/50+vec2(0,axle.state.y[0])))
 		for dimension,value in pairs(suspensionForce) do
 			suspensionForce[dimension] = value - suspensionForceI[dimension]
 		end
@@ -149,7 +149,15 @@ function axle:update()
 	--self.params.brakeApplication = self.parent.controls.brakeApplication[self.componentIndex] or 0
 end
 
-function  axle:getAxleRoadDistance()
+function axle:recalc()
+	self.calcs = {}
+	self.calcs.getContactAngle = self:calcContactAngle()
+	self.calcs.getAxleRoadDistance = self:calcAxleRoadDistance()
+	self.calcs.getSuspensionForce = self:calcSuspensionForce()
+	self.calcs.getSlip = self:calcSlip()
+end
+
+function  axle:calcAxleRoadDistance()
 	local bodyAngle = self.parent.body.state.theta[0]
 	local axleXPos = self.parent.body.state.x[0] - 
 	self.state.y[0] * math.sin(bodyAngle) +	
@@ -168,7 +176,7 @@ function  axle:getAxleRoadDistance()
 	return axleDistance
 end
 	
-function axle:getContactAngle()
+function axle:calcContactAngle()
 	local bodyAngle = self.parent.body.state.theta[0]
 	local axleXPos = self.parent.body.state.x[0] - 
 	self.state.y[0] * math.sin(bodyAngle) +	
@@ -189,15 +197,15 @@ function axle:getContactAngle()
 	return angle
 end
 
-function axle:getSuspensionForce()
+function axle:calcSuspensionForce()
 	local springForce = - self.params.springRate * (self.state.y[0])
 	local damperForce = - self.params.dampingRate * (self.state.y[1])
 	return springForce+damperForce
 end
 
-function axle:getSlip()
+function axle:calcSlip()
 	local wheelSurfaceSpeed = self.state.theta[1] * self.params.radius
-	local contactAngle = self:getContactAngle()
+	local contactAngle = self.calcs.getContactAngle
 	local groundSpeed = math.dot(vec2(self.parent.body.state.x[1],self.parent.body.state.y[1]),vec2(math.cos(contactAngle),math.sin(contactAngle)))
 	local referenceSpeed = wheelSurfaceSpeed - groundSpeed
 	local longitudinalSlip = math.abs(wheelSurfaceSpeed/groundSpeed - 1) * math.sign(referenceSpeed)
@@ -228,14 +236,14 @@ function axle:netForce(dimension)
 	local constForce = 0
 	local frictionForce = 0
 	--Evaluate contact angle
-	local contactAngle = self:getContactAngle()
+	local contactAngle = self.calcs.getContactAngle
 	local uprightAngle = self.parent.body.state.theta[0]
 	--Evaluate braking torque
 	local brakingTorque = self.params.maxBrakeTorque * self.parent.controls.brake
 	--Evaluate road normal force
-	local roadNormalForce = math.max(-(self:getAxleRoadDistance())*self.params.tyreStiffness,0)
+	local roadNormalForce = math.max(-(self.calcs.getAxleRoadDistance)*self.params.tyreStiffness,0)
 	if roadNormalForce == 0 then self.isTouchingRoad = false else self.isTouchingRoad = true end
-	--print("self:getAxleRoadDistance()",self:getAxleRoadDistance())
+	--print("self.calcs.getAxleRoadDistance",self.calcs.getAxleRoadDistance)
 	--print("roadNormalForce",roadNormalForce)
 	--Evaluate road friction force
 	local roadFrictionForce = tyreForce(self,self.parent.body,roadNormalForce)
@@ -246,7 +254,7 @@ function axle:netForce(dimension)
 	-- print(self.axleIndex, roadFrictionForce, roadFrictionRefSpeed, roadFrictionRefDirection)
 	--Evaluate suspension force
 	--print(self.axleIndex, -contactAngle, math.cos(-contactAngle), math.sin(-contactAngle))
-	local suspensionForce = self:getSuspensionForce()
+	local suspensionForce = self.calcs.getSuspensionForce
 	if dimension == "x" then
 		constForce = 
 			roadNormalForce * math.sin(-contactAngle)

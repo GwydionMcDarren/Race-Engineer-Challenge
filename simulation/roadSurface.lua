@@ -49,8 +49,8 @@ function roadSurface:new(X,Y)
 end
 
 function roadSurface:getHeight(x)
-	if x < self.x[1] then return self.y[1] end
-	if x > self.x[#self.x] then return self.y[#self.x] end
+	if x <= self.x[1] then return self.y[1] end
+	if x >= self.x[#self.x] then return self.y[#self.y] end
 	local highIndex = 1
 	for index,xVal in pairs(self.x) do
 		if xVal > x then 
@@ -58,7 +58,11 @@ function roadSurface:getHeight(x)
 			break 
 		end
 	end
-	if not highIndex then highIndex = #self.x end
+	if not highIndex then 
+		highIndex = #self.x
+	elseif highIndex == 1 then
+		highIndex = 2
+	end
 	local lowIndex = highIndex - 1
 	local lowX = self.x[lowIndex]
 	local highX = self.x[highIndex]

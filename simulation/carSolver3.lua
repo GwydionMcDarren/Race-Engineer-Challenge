@@ -37,6 +37,11 @@ function stateDeriv(car, state)
 	local massMatrixTable = {}
 	local forceTable = {}
 	--Assemble mass matrix
+	for i,component in car:iterateOverComponents() do
+		if type(component.recalc) == "function" then
+			component:recalc()
+		end
+	end
 	for i,component,dimension in car:iterateOverDoF() do
 		massMatrixTable[2*i-1] = {}
 		massMatrixTable[2*i] = {}

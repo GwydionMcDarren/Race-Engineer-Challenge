@@ -199,9 +199,10 @@ function car:createNode()
 	carNode.parent = self
 	carNode:action( function (bodySprite)
 		if not win:key_down("space") then
-		ts = 1/(60*4)
+		
+		ts = 1/(60*num_steps)
 		timestep = 0
-		while timestep < am.delta_time do
+		while timestep <= am.delta_time do
 			timestep = timestep + self:solver(ts)
 		end
 		for index,component in self:iterateOverComponents() do

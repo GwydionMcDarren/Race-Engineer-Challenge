@@ -1,5 +1,5 @@
 function tyreForce(axle,body,normalForce)
-	local longitudinalSlip = axle:getSlip()
+	local longitudinalSlip = axle.calcs.getSlip
 	local peakSlip = 0.15
 	local slipDirection = math.sign(longitudinalSlip)
 	longitudinalSlip = math.abs(longitudinalSlip)

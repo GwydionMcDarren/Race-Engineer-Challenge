@@ -24,15 +24,25 @@ function game:start()
 			end
 		end
 	)
-	for i=1,self.roadNode.x[#self.roadNode.x],50 do
-		self.mobileScene:append(am.translate(vec2(i*50,0))^self.backdrop)
-	end
+	--for i=1,self.roadNode.x[#self.roadNode.x],50 do
+	--	self.mobileScene:append(am.translate(vec2(i*50,0))^self.backdrop)
+	--end
 	self.mobileScene:append(self.roadNode:tag"roadSurface")
 	for index,vehicle in pairs(self.vehicle) do
 		self.mobileScene:append(vehicle:createNode())
 	end
 	win.scene:append(self.mobileScene)
 	win.scene:append(self.gui)
+	local fpsCounter = am.translate(vec2(-200,200))^am.text("")
+	fpsCounter:action( function (fpsNode)
+		local str = ""
+		for k,v in pairs(am.perf_stats()) do
+			str = str..k.." "..v.."\n"
+		end
+		fpsNode"text".text = str
+		end
+	)
+	win.scene:append(fpsCounter)
 end
 
 function game:updateCamera(car)
