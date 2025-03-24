@@ -122,7 +122,7 @@ function axle:new(a)
 		radius = (a.radius or 0.3),
 		springRate = (a.springRate or 5e5),
 		dampingRate = (a.dampingRate or 1e4),
-		maxBrakeTorque = (a.maxBrakeTorque or 1e4),
+		maxBrakeTorque = (a.maxBrakeTorque or 1e3),
 		tyreStiffness = (a.tyreStiffness or 1e6),
 		brakeApplication = 0,
 		maxTravel = 0.5,
@@ -273,8 +273,7 @@ function axle:netForce(dimension)
 		end
 	--print(self.axleIndex, dimension, constForce)
 	elseif dimension == "theta" then
-		if win:key_down("up") then constForce = 1e6 else constForce = 0 end--math.abs(math.min(750,1e5/self.state.theta[1])) else constForce = 0 end
-		
+		if win:key_down("up") then constForce = math.min(750,math.abs(7.5e3/self.state.theta[1])) else constForce = 0 end
 		--constForce = 0
 		frictionForce = 0
 		if roadFrictionRefSpeed == 0 then 

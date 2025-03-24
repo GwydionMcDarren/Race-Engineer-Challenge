@@ -193,7 +193,7 @@ function car:createNode()
 		carParts:append(self.body.axleOffsetNodes[index]^self.axles[index].sprite)
 	end
 	carNode:append(trackingNode)
-	self.body.state.y[0] = 0.3
+	self.body.state.y[0] = 0.5
 	self.body.state.x[0] = 0
 	self.body.state.x[1] = 0
 	carNode.parent = self
