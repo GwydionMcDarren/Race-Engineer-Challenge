@@ -39,7 +39,12 @@ function stateDeriv(car, state)
 	--Assemble mass matrix
 	for i,component in car:iterateOverComponents() do
 		if type(component.recalc) == "function" then
-			component:recalc()
+			print(component.name)
+			component.calcs = component:recalc()
+			print(car.axles)
+			print(car.axles[1])
+			print(car.axles[1].calcs)
+			print(car.axles[1].calcs.getSuspensionForce)
 		end
 	end
 	for i,component,dimension in car:iterateOverDoF() do

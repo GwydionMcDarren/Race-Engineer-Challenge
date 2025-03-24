@@ -115,13 +115,13 @@ function axle:new(a)
 	local a = a or {}
 	newAxle.name = a.name or "Unnamed axle"
 	newAxle.inertia = {}
-	newAxle.inertia.x = a.mass or 20
-	newAxle.inertia.y = a.mass or 20
-	newAxle.inertia.theta = a.rInertia or 20
+	newAxle.inertia.x = a.mass or 10
+	newAxle.inertia.y = a.mass or 10
+	newAxle.inertia.theta = a.rInertia or 10
 	newAxle.params = {
 		radius = (a.radius or 0.3),
-		springRate = (a.springRate or 5e5),
-		dampingRate = (a.dampingRate or 1e4),
+		springRate = (a.springRate or 30e4),
+		dampingRate = (a.dampingRate or 1e3),
 		maxBrakeTorque = (a.maxBrakeTorque or 1e3),
 		tyreStiffness = (a.tyreStiffness or 1e6),
 		brakeApplication = 0,
@@ -132,11 +132,6 @@ function axle:new(a)
 	newAxle.sprite:action( function (axleSprite)
 			axleSprite"translate".position2d = vec2(newAxle.state.x[0],newAxle.state.y[0])*50
 			axleSprite"rotate".angle = -newAxle.state.theta[0]
-			if newAxle.isTouchingRoad then
-				axleSprite"sprite".color = vec4(1,0,0,1)
-			else
-				axleSprite"sprite".color = vec4(1,1,1,1)
-			end
 		end
 	)
 	setmetatable(newAxle, self)
@@ -167,9 +162,6 @@ function  axle:calcAxleRoadDistance()
 	self.state.y[0] * math.cos(bodyAngle) +
 	self.parent.body.params.axleOffsets[self.axleIndex].x/50 * math.sin(bodyAngle) +
 	self.parent.body.params.axleOffsets[self.axleIndex].y/50 * math.cos(bodyAngle)
-	if self.axleIndex == 1 then
-		trackingNode"circle".position2d = vec2(axleXPos*50, axleYPos*50)
-	end
 	local radius = self.params.radius
 	local roadHeight = win.scene"roadSurface":getHeight(axleXPos)
 	local axleDistance = axleYPos - roadHeight
@@ -190,9 +182,7 @@ function axle:calcContactAngle()
 		table.insert(roadWheelDistance,{i,roadSurface:getHeight(axleXPos+i)+wheelHeight})
 	end
 	table.sort(roadWheelDistance, function (a,b) if a[2] > b[2] then return true end end)
-	trackingNode"line".point1 = trackingNode"circle".position2d
 	local angle = math.asin(roadWheelDistance[1][1]/radius) - bodyAngle
-	trackingNode"line".point2 = trackingNode"circle".position2d + vec2(10 * -math.sin(angle),10*-math.cos(angle))
 	if win:key_pressed("w") then print(self.axleIndex, angle) end
 	return angle
 end

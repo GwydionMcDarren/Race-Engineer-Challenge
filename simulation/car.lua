@@ -192,7 +192,6 @@ function car:createNode()
 	for index,axles in pairs(self.axles) do
 		carParts:append(self.body.axleOffsetNodes[index]^self.axles[index].sprite)
 	end
-	carNode:append(trackingNode)
 	self.body.state.y[0] = 0.5
 	self.body.state.x[0] = 0
 	self.body.state.x[1] = 0

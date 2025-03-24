@@ -23,7 +23,6 @@ sky = am.sprite("graphics/sky.png")
 largeRect = am.group{am.rect(10,-50,40,-55,vec4(0.8,0.8,0.8,1)),am.rect(0,-31,100,0,vec4(0.5,0.5,0.5,1))}
 backgroundHillSprite = am.sprite("graphics/largeHills.png")
 foregroundHillSprite = am.sprite("graphics/hills.png")
-trackingNode = am.group(am.circle(vec2(0,0),2,vec4(1,1,0,1)), am.line(vec2(0,0),vec2(1,1)))
 require 'utilityFunctions'
 
 require 'GUI.menuElements'
@@ -34,6 +33,7 @@ require "GUI.gui"
 require 'simulation.roadSurface'
 require 'simulation.tyreForce'
 require 'simulation.car'
+require 'simulation.component_library'
 function createWavyRoad(xOrY)
 	local output = {}
 	if xOrY == "x" then 
@@ -63,9 +63,7 @@ end
 sandbox = game:new{
 	vehicle = {
 		car:new(
-			body:new{
-			
-			},
+			componentLibrary.bodies.sedan,
 			{
 				axle:new{
 					inertia = {y = 10, x=10},
