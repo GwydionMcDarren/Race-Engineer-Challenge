@@ -31,6 +31,7 @@ function game:start()
 	for index,vehicle in pairs(self.vehicle) do
 		self.mobileScene:append(vehicle:createNode())
 	end
+	win.scene:append(self:generateBackdrop(self.backdrop.sprite,self.backdrop.movement,self.backdrop.offset))
 	win.scene:append(self.mobileScene)
 	win.scene:append(self.gui)
 	local fpsCounter = am.translate(vec2(-200,200))^am.text("")
@@ -76,5 +77,30 @@ end
 
 --We also need to define the gui elements in this class
 
+function game:generateBackdrop(sprite,relativeMovement,offset)
+	local offset = offset or vec2(0,0)
+	local backdropNode = am.group()
+	local relativeMovement = relativeMovement or 1
+	local coverageRequirement = math.ceil(win.width/am.sprite(sprite).width)+1
+	function newBackdropSprite(x)
+		local backdropSprite = am.translate(vec2(offset.x-x,offset.y))^am.sprite(sprite)
+		local adjustedWidth = coverageRequirement * backdropSprite"sprite".width
+		backdropSprite:action(
+			function (backdropSpriteNode)
+				backdropSpriteNode"translate".x = backdropSpriteNode"translate".x - currentGame.vehicle[1].body.state.x[1]*am.delta_time*50/relativeMovement
+				if math.abs(backdropSpriteNode"translate".x) - backdropSprite"sprite".width/2 > win.width/2 then
+					if backdropSpriteNode"translate".x > 0 then backdropSpriteNode"translate".x = backdropSpriteNode"translate".x - adjustedWidth
+					else backdropSpriteNode"translate".x = backdropSpriteNode"translate".x + adjustedWidth
+					end
+				end
+			end
+		)
+		return backdropSprite
+	end
+	for i=0,coverageRequirement-1 do
+		backdropNode:append(newBackdropSprite(i*am.sprite(sprite).width))
+	end
+	return backdropNode
+end
 
 return game

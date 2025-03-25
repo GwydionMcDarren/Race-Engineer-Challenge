@@ -29,7 +29,7 @@ end
 
 function levels:startLevel()
 	currentLevel = self
-	newLevel.stage = 1	
+	currentLevel.stage = 1	
 	if self[1].isGame then
 		self[1]:start()
 	else

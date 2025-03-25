@@ -307,8 +307,7 @@ function axle:netForce(dimension)
 		end
 	--print(self.axleIndex, dimension, constForce)
 	elseif dimension == "theta" then
-		if win:key_down("up") then constForce = math.min(1350/2,math.abs(37e4/self.state.theta[1])) else constForce = 0 end
-		--constForce = 0
+		constForce = 0
 		frictionForce = 0
 		if roadFrictionRefSpeed == 0 then 
 			frictionForce = frictionForce + math.abs(roadFrictionForce * -self.params.radius)
@@ -356,6 +355,8 @@ end
 function powertrainPart:update()
 	return nil
 end
+
+require 'simulation.powertrainModels'
 
 --Gearbox
 --Engine

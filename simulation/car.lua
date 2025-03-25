@@ -93,7 +93,22 @@ end
 function car:applyConstraints(component,forceIn,dimension,forceTable,massMatrixTable) -- What are we trying to do here?
 	--Iterate over powertrain members to do something
 	for index,powertrainComponent in self:iterateOverPowertrain() do
-		--??
+		local powertrainComponentIndex = powertrainComponent.firstDimensionIndex * 2
+		if powertrainComponent.constraints.output then
+			local outputConstraint = powertrainComponent.constraints.output
+			if outputConstraint.type == "fixed-axle" then
+				local outputTorque = forceTable[powertrainComponentIndex][1] *  (outputConstraint.ratio)/#outputConstraint.axles
+				local effectiveInertia = powertrainComponent.inertia.theta*(outputConstraint.ratio)/#outputConstraint.axles
+				for index,axleIndex in ipairs(outputConstraint.axles) do
+					local axleDimensionIndex = (self.axles[axleIndex].firstDimensionIndex+2) * 2
+					forceTable[axleDimensionIndex][1] = forceTable[axleDimensionIndex][1] + outputTorque
+					massMatrixTable[axleDimensionIndex][axleDimensionIndex] = massMatrixTable[axleDimensionIndex][axleDimensionIndex] + effectiveInertia
+					forceTable[powertrainComponentIndex] = {0,0}
+					massMatrixTable[powertrainComponentIndex][powertrainComponentIndex] = -1
+					massMatrixTable[powertrainComponentIndex][axleDimensionIndex] = outputConstraint.ratio		
+				end
+			end
+		end
 	end
 	local bodyAngle = self.body.state.theta[0]
 	local bodyXForceIndex = self.body.firstDimensionIndex * 2
@@ -159,7 +174,7 @@ function car:new(body,axles,powertrain, isPlayer, adjustments)
 		axle.axleIndex = index
 	end
 	newCar.controls = {
-		thottle = 0,
+		throttle = 0,
 		brake = 0,
 		gear_up = false,
 		gear_down = false,

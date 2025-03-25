@@ -21,8 +21,8 @@ car_outline = am.sprite("graphics/tigra-outline.png")
 wheel_rotating_mask = am.sprite("graphics/wheel-marker.png")
 sky = am.sprite("graphics/sky.png")
 largeRect = am.group{am.rect(10,-50,40,-55,vec4(0.8,0.8,0.8,1)),am.rect(0,-31,100,0,vec4(0.5,0.5,0.5,1))}
-backgroundHillSprite = am.sprite("graphics/largeHills.png")
-foregroundHillSprite = am.sprite("graphics/hills.png")
+backgroundHillSprite = "graphics/largeHills.png"
+foregroundHillSprite = "graphics/hills.png"
 require 'utilityFunctions'
 
 require 'GUI.menuElements'
@@ -34,8 +34,10 @@ require 'simulation.roadSurface'
 require 'simulation.tyreForce'
 require 'simulation.car'
 require 'simulation.component_library'
-function createWavyRoad(xOrY)
+function createWavyRoad(xOrY,a,b)
 	local output = {}
+	local a = a or 1
+	local b = b or 1
 	if xOrY == "x" then 
 		for i=1,2000,0.5 do
 			table.insert(output, i)
@@ -43,16 +45,16 @@ function createWavyRoad(xOrY)
 	else
 		for i=1,2000,0.5 do
 			if i<300 then
-				table.insert(output,0 + math.sin(i)*0.2)
+				table.insert(output,0 + math.sin(i*b)*0.2*a)
 			elseif i>500 then
-				table.insert(output,50 + math.sin(i)*0.2)
+				table.insert(output,50 + math.sin(i*b)*0.2*a)
 			else
 				local c = (i-300)/(500-300)
 				y1 = 0*(1-c)^3
 				y2 = 0*3*(1-c)^2*c
 				y3 = 3*(1-c)*(c^2)
 				y4 = c^3
-				y = 50*(y1+y2+y3+y4) + math.sin(i)*0.2
+				y = 50*(y1+y2+y3+y4) + math.sin(i*b)*0.2*a
 			table.insert(output, y)--0.4*math.sin(i/(15*math.pi))+1)
 			end
 		end
@@ -69,14 +71,16 @@ sandbox = game:new{
 				componentLibrary.axles.old_wheel,
 			},
 			{
-				powertrainPart:new{
-			
-				},
+				electricMotorPowertrain:new(75e3, 200, 30, {1}, 8),
 			}
 		),
 	},
 	roadNode = roadSurface:new(createWavyRoad("x"),createWavyRoad("y")),--{0,30,1000,1500,2000,2500,3000},{0,0,100,0,0,0,0}), --
-	backdrop = am.rect(0,0,100,5500,vec4(1,0,0,1)),
+	backdrop = {
+		sprite = backgroundHillSprite,
+		movement = 5,
+		offset = vec2(0,0)
+	},
 	gui = gui:newElement{
 		trackingVariable = "front_axle_speed",
 		unit_scaling = 0.3*2.25,
@@ -118,7 +122,35 @@ level1 = levels:new{
 				end
 		},
 	},	
-	[2] = menu:new{
+	[2] = game:new{
+	vehicle = {
+		car:new(
+			componentLibrary.bodies.hatchback,
+			{
+				componentLibrary.axles.basic_wheel,
+				componentLibrary.axles.basic_wheel,
+			},
+			{
+				electricMotorPowertrain:new(75e3, 200, 30),
+			}
+		),
+	},
+	roadNode = roadSurface:new(createWavyRoad("x"),createWavyRoad("y",1,0.5/math.pi)),--{0,30,1000,1500,2000,2500,3000},{0,0,100,0,0,0,0}), --
+	backdrop = {
+		sprite = backgroundHillSprite,
+		movement = 5,
+		offset = vec2(0,0)
+	},
+	gui = gui:newElement{
+		trackingVariable = "front_axle_speed",
+		unit_scaling = 0.32*2.25,
+		max = 90,
+		min = 0,
+		valueIsAbs = true,
+		location = vec2(0,-150),
+	}
+	
+	--[[menu:new{
 		am.rect(-400,-300,400,300,vec4(0.7,0.7,0.0,1)),
 		am.translate(vec2(0,200))^liveText("[Game Placeholder]\nGear ratio selected: ##D",vec4(1,1,1,1)),
 		newSlider{
@@ -145,7 +177,7 @@ level1 = levels:new{
 						d[1] = "failed"
 					end
 					currentLevel:nextStage(d)
-				end},
+				end},]]
 	},
 	[3] = menu:new{
 		am.rect(-400,-300,400,300,vec4(0,0.5,0.5,1)),
@@ -164,30 +196,152 @@ level1 = levels:new{
 	}
 }
 
-backgroundHills = am.scale(1)
+level2 = levels:new{
+	name = "Level 2",
+	[1] = menu:new{
+		am.rect(-400,-300,400,300,vec4(0.3,0.3,0.3,1)),
+		am.translate(vec2(0,200))^am.text("Pass score: 700",vec4(1,1,1,1)),
+		newSlider{
+			position=vec2(-150,0),
+			length=200,
+			label="Gear Ratio",
+			knobColour = vec4(1,0,0,1),
+			knobSize=20,
+			valueLimits = {0.01,7},
+			defaultValue = 2.35,
+		},
+		newButton{
+			size=vec2(150,50),
+			position=vec2(-75,-200),
+			colour=vec4(0,0.9,0.4,1),
+			label="Continue",
+			labelColour=vec4(1,1,1,1),
+			clickFunction = 
+				function()
+					d, _ = level2[1]:close()
+					d[2] = 700
+					currentLevel:nextStage(d)
+				end
+		},
+	},	
+	[2] = game:new{
+	vehicle = {
+		car:new(
+			componentLibrary.bodies.sedan,
+			{
+				componentLibrary.axles.basic_wheel,
+				componentLibrary.axles.basic_wheel,
+			},
+			{
+				electricMotorPowertrain:new(309e3, 400, 30, {1,2}, 10),
+			}
+		),
+	},
+	roadNode = roadSurface:new(createWavyRoad("x"),createWavyRoad("y",0.1,30)),--{0,30,1000,1500,2000,2500,3000},{0,0,100,0,0,0,0}), --
+	backdrop = {
+		sprite = backgroundHillSprite,
+		movement = 5,
+		offset = vec2(0,0)
+	},
+	gui = gui:newElement{
+		trackingVariable = "front_axle_speed",
+		unit_scaling = 0.26*2.25,
+		max = 90,
+		min = 0,
+		valueIsAbs = true,
+		location = vec2(0,-150),
+	}
+	},
+	[3] = menu:new{
+		am.rect(-400,-300,400,300,vec4(0,0.5,0.5,1)),
+		am.translate(vec2(0,200))^liveText("You ##D the level",vec4(1,1,1,1),1),
+		newButton{
+			size=vec2(150,50),
+			position=vec2(-75,-25),
+			colour=vec4(0,0.9,0.4,1),
+			label="Continue",
+			labelColour=vec4(1,1,1,1),
+			clickFunction = 
+				function() 
+					level1[3]:close()
+					mainMenu:initialise()
+				end},
+	}
+}
 
-function backgroundHills:new(i)
-	local node = am.translate(vec2(1000-i,20))^backgroundHillSprite
-	node:action( function(hill) hill.x = hill.x - car.components[5].coords.x[1]*am.delta_time
-		if hill.x < -1000 then backgroundHills:new(-hill.x-1000) backgroundHills:remove(hill) end
-		end)
-	backgroundHills:append(node)
-end
-for i=0,2000,1000 do
-backgroundHills:new(i)
-end
-foregroundHills = am.scale(1)
-
-function foregroundHills:new(i)
-	local node = am.translate(vec2(436-i,0))^foregroundHillSprite
-	node:action( function(hill) hill.x = hill.x - car.components[5].coords.x[1]*am.delta_time*2
-		if hill.x < -500 then foregroundHills:new(-hill.x-500) foregroundHills:remove(hill) end
-		end)
-	foregroundHills:append(node)
-end
-for i=0,936,72 do
-foregroundHills:new(i)
-end
+level3 = levels:new{
+	name = "Level 3",
+	[1] = menu:new{
+		am.rect(-400,-300,400,300,vec4(0.3,0.3,0.3,1)),
+		am.translate(vec2(0,200))^am.text("Pass score: 700",vec4(1,1,1,1)),
+		newSlider{
+			position=vec2(-150,0),
+			length=200,
+			label="Gear Ratio",
+			knobColour = vec4(1,0,0,1),
+			knobSize=20,
+			valueLimits = {0.01,7},
+			defaultValue = 2.35,
+		},
+		newButton{
+			size=vec2(150,50),
+			position=vec2(-75,-200),
+			colour=vec4(0,0.9,0.4,1),
+			label="Continue",
+			labelColour=vec4(1,1,1,1),
+			clickFunction = 
+				function()
+					d, _ = level3[1]:close()
+					d[2] = 700
+					currentLevel:nextStage(d)
+				end
+		},
+	},	
+	[2] = game:new{
+	vehicle = {
+		car:new(
+			componentLibrary.bodies.lorry,
+			{
+				componentLibrary.axles.lorry_front_wheel,
+				componentLibrary.axles.lorry_rear_wheel,
+				componentLibrary.axles.lorry_rear_wheel,
+			},
+			{
+				electricMotorPowertrain:new(300e3, 1e3, 30, {2,3}, 20),
+			}
+		),
+	},
+	roadNode = roadSurface:new(createWavyRoad("x"),createWavyRoad("y",0,0)),--{0,30,1000,1500,2000,2500,3000},{0,0,100,0,0,0,0}), --
+	backdrop = {
+		sprite = backgroundHillSprite,
+		movement = 5,
+		offset = vec2(0,0)
+	},
+	gui = gui:newElement{
+		trackingVariable = "front_axle_speed",
+		unit_scaling = 0.46*2.25,
+		max = 90,
+		min = 0,
+		valueIsAbs = true,
+		location = vec2(0,-150),
+	}
+	},
+	[3] = menu:new{
+		am.rect(-400,-300,400,300,vec4(0,0.5,0.5,1)),
+		am.translate(vec2(0,200))^liveText("You ##D the level",vec4(1,1,1,1),1),
+		newButton{
+			size=vec2(150,50),
+			position=vec2(-75,-25),
+			colour=vec4(0,0.9,0.4,1),
+			label="Continue",
+			labelColour=vec4(1,1,1,1),
+			clickFunction = 
+				function() 
+					level1[3]:close()
+					mainMenu:initialise()
+				end},
+	}
+}
 
 
 roadStripes = am.group()
