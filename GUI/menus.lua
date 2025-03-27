@@ -17,19 +17,16 @@ function menu:initialise()
 end
 
 function menu:close()
-	local menuValues = {}
-	local menuValueKeys = {}
+	local menuResults = {}
 	for index, child in win.scene"menu":child_pairs() do
-		if child.value then
-			table.insert(menuValues,child.value)
-			if child.valueKey then
-				table.insert(menuValueKeys,child.valueKey,#menuValues)
-			end
+		if child.name then
+			menuResults[child.name] = child.value
+		else
+			table.insert(menuResults,child.value)
 		end
 	end
 	win.scene:remove(self)
-	for k,v in pairs(menuValues) do print(k,v) end
-	return menuValues, menuValueKeys
+	return menuResults
 end
 
 --Some default menus are defined to give the game structure

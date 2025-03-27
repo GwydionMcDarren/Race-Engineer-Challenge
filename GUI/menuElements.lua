@@ -4,8 +4,11 @@ function newButton(buttonData)
 	buttonData.size = buttonData.size 
 	buttonData.colour = buttonData.colour or vec4(1,1,1,1)
 	buttonData.label = buttonData.label or "Unnamed"
+	buttonData.name = buttonData.name
 	buttonData.labelColour = buttonData.labelColour or vec4(0,0,0,1)
 	buttonData.clickFunction = buttonData.clickFunction or function() print("Button "..buttonData.label.." pressed") end
+	buttonData.get_value = function (self) return self.value end
+	buttonData.get_name = function (self) return self.name end
 	
 	local textNode = am.text(buttonData.label,buttonData.labelColour,"center","center")
 	if not buttonData.size then buttonData.size = vec2(textNode.width+16,textNode.height+16) end
@@ -26,7 +29,9 @@ function newButton(buttonData)
 			end
 	end
 	)
-	buttonNode.value = buttonData.value
+	buttonNode.get_value = function (self) return buttonData.value end
+	buttonNode.set_value = function (self, value) buttonData.value = value end
+	buttonNode.get_name = function (self) return buttonData.name end
 	buttonNode:tag("button")
 	return buttonNode
 end
@@ -78,11 +83,13 @@ function newSlider(sliderData)
 	sliderData.knobColour = sliderData.knobColour or vec4(0.8,0.8,0.8,1)
 	sliderData.barColour = sliderData.barColour or vec4(0.5,0.5,0.5,1)
 	sliderData.label = sliderData.label or "Unnamed"
+	sliderData.name = sliderData.name
 	sliderData.labelColour = sliderData.labelColour or vec4(0,0,0,1)
 	sliderData.valueLimits = sliderData.valueLimits or {0,1}
 	sliderData.range = sliderData.valueLimits[2] - sliderData.valueLimits[1]
 	sliderData.defaultValue = sliderData.defaultValue or sliderData.valueLimits[1]
 	sliderData.valueFormat = sliderData.valueFormat or "%.2f"
+	sliderData.value = sliderData.defaultValue
 	
 	local labelNode = am.text(sliderData.label,sliderData.labelColour,"left","center"):tag("textNode")
 	local valueNode = am.text(string.format(sliderData.valueFormat,sliderData.defaultValue),sliderData.labelColour,"right","center"):tag("value")
@@ -130,7 +137,6 @@ function newSlider(sliderData)
 	am.translate(vec2(sliderData.size.x-rightPadding,topPadding))^valueNode,
 	}
 	--Assign values to the graphical object
-	sliderNode.value = sliderData.defaultValue
 	sliderNode.gripped = false
 	sliderNode.valueLimits = sliderData.valueLimits
 	sliderNode.range = sliderData.range
@@ -154,6 +160,9 @@ function newSlider(sliderData)
 		slider"value".text = string.format(sliderData.valueFormat,slider.value)
 	end
 	)
+	sliderNode.get_value = function (self) return sliderData.value end
+	sliderNode.set_value = function (self, value) sliderData.value = value end
+	sliderNode.get_name = function (self) return sliderData.name end
 	return sliderNode
 end
 

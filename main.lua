@@ -3,7 +3,7 @@
 UNIT_TESTS = false
 DEBUG = false
 g = 9.81
-num_steps = 3
+num_steps = 4
 
 win = am.window{
     title = "RE Challenge",
@@ -44,17 +44,25 @@ function createWavyRoad(xOrY,a,b)
 		end
 	else
 		for i=1,2000,0.5 do
-			if i<300 then
-				table.insert(output,0 + math.sin(i*b)*0.2*a)
-			elseif i>500 then
-				table.insert(output,50 + math.sin(i*b)*0.2*a)
+			if i<100 or i>400 then
+				table.insert(output,a)
+			elseif i>200 and i<300 then
+				table.insert(output,0)
+			elseif i<=200 then
+				local c = (i-100)/(200-100)
+				y1 = (1-c)^3
+				y2 = 3*(1-c)^2*c
+				y3 = 0*3*(1-c)*(c^2)
+				y4 = 0*c^3
+				y = a*(y1+y2+y3+y4)
+			table.insert(output, y)--0.4*math.sin(i/(15*math.pi))+1)
 			else
-				local c = (i-300)/(500-300)
+				local c = (i-300)/(400-300)
 				y1 = 0*(1-c)^3
 				y2 = 0*3*(1-c)^2*c
 				y3 = 3*(1-c)*(c^2)
 				y4 = c^3
-				y = 50*(y1+y2+y3+y4) + math.sin(i*b)*0.2*a
+				y = a*(y1+y2+y3+y4)
 			table.insert(output, y)--0.4*math.sin(i/(15*math.pi))+1)
 			end
 		end
@@ -88,7 +96,7 @@ sandbox = game:new{
 		min = 0,
 		valueIsAbs = true,
 		location = vec2(0,-150),
-	}
+	},
 }
 
 --level1_game = sandbox
@@ -103,6 +111,7 @@ level1 = levels:new{
 			position=vec2(-150,0),
 			length=200,
 			label="Gear Ratio",
+			name="motor_driveRatio",
 			knobColour = vec4(1,0,0,1),
 			knobSize=20,
 			valueLimits = {0.01,7},
@@ -116,8 +125,9 @@ level1 = levels:new{
 			labelColour=vec4(1,1,1,1),
 			clickFunction = 
 				function()
-					d, _ = level1[1]:close()
+					d = level1[1]:close()
 					d[2] = 700
+					print("-- MOTOR_DRIVERATIO --\n"..d.motor_driveRatio)
 					currentLevel:nextStage(d)
 				end
 		},
@@ -131,11 +141,11 @@ level1 = levels:new{
 				componentLibrary.axles.basic_wheel,
 			},
 			{
-				electricMotorPowertrain:new(75e3, 200, 30),
+				electricMotorPowertrain:new(75e3*4, 200, 30, {1}, 30),
 			}
 		),
 	},
-	roadNode = roadSurface:new(createWavyRoad("x"),createWavyRoad("y",1,0.5/math.pi)),--{0,30,1000,1500,2000,2500,3000},{0,0,100,0,0,0,0}), --
+	roadNode = roadSurface:new(createWavyRoad("x"),createWavyRoad("y",200)),--{0,30,1000,1500,2000,2500,3000},{0,0,100,0,0,0,0}), --
 	backdrop = {
 		sprite = backgroundHillSprite,
 		movement = 5,
@@ -148,7 +158,8 @@ level1 = levels:new{
 		min = 0,
 		valueIsAbs = true,
 		location = vec2(0,-150),
-	}
+	},
+	endCondition = 100,
 	
 	--[[menu:new{
 		am.rect(-400,-300,400,300,vec4(0.7,0.7,0.0,1)),
@@ -250,7 +261,8 @@ level2 = levels:new{
 		min = 0,
 		valueIsAbs = true,
 		location = vec2(0,-150),
-	}
+	},
+	endCondition = 600,
 	},
 	[3] = menu:new{
 		am.rect(-400,-300,400,300,vec4(0,0.5,0.5,1)),
@@ -263,7 +275,7 @@ level2 = levels:new{
 			labelColour=vec4(1,1,1,1),
 			clickFunction = 
 				function() 
-					level1[3]:close()
+					level2[3]:close()
 					mainMenu:initialise()
 				end},
 	}
@@ -324,7 +336,8 @@ level3 = levels:new{
 		min = 0,
 		valueIsAbs = true,
 		location = vec2(0,-150),
-	}
+	},
+	endCondition = 600,
 	},
 	[3] = menu:new{
 		am.rect(-400,-300,400,300,vec4(0,0.5,0.5,1)),
@@ -337,7 +350,7 @@ level3 = levels:new{
 			labelColour=vec4(1,1,1,1),
 			clickFunction = 
 				function() 
-					level1[3]:close()
+					level3[3]:close()
 					mainMenu:initialise()
 				end},
 	}

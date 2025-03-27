@@ -103,10 +103,10 @@ function car:applyConstraints(component,forceIn,dimension,forceTable,massMatrixT
 					local axleDimensionIndex = (self.axles[axleIndex].firstDimensionIndex+2) * 2
 					forceTable[axleDimensionIndex][1] = forceTable[axleDimensionIndex][1] + outputTorque
 					massMatrixTable[axleDimensionIndex][axleDimensionIndex] = massMatrixTable[axleDimensionIndex][axleDimensionIndex] + effectiveInertia
-					forceTable[powertrainComponentIndex] = {0,0}
 					massMatrixTable[powertrainComponentIndex][powertrainComponentIndex] = -1
 					massMatrixTable[powertrainComponentIndex][axleDimensionIndex] = outputConstraint.ratio		
 				end
+				forceTable[powertrainComponentIndex] = {0,0}
 			end
 		end
 	end
@@ -144,18 +144,16 @@ end
 function car:new(body,axles,powertrain, isPlayer, adjustments)
 	local newCar =  {}
 	local adjustments = adjustments or {}
-	newCar.body = body:newInstance(adjustments.body)
+	newCar.body = body:newInstance()
 	newCar.body.dimensionIndices = {}
 	newCar.axles = {}
-	adjustments.axles = adjustments.axles or {}
 	newCar.powertrain = {}
-	adjustments.powertrain = adjustments.powertrain or {}
 	for i,v in ipairs(axles) do
-		newCar.axles[i] = axles[i]:newInstance(adjustments.axles[i])
+		newCar.axles[i] = axles[i]:newInstance()
 		newCar.axles[i].dimensionIndices = {}
 	end
 	for i,v in ipairs(powertrain) do
-		newCar.powertrain[i] = powertrain[i]:newInstance(adjustments.powertrain[i])
+		newCar.powertrain[i] = powertrain[i]:newInstance()
 		newCar.powertrain[i].dimensionIndices = {}
 	end
 	setmetatable(newCar, self)
@@ -185,11 +183,12 @@ function car:new(body,axles,powertrain, isPlayer, adjustments)
 end
 
 function car:updateControls()
+	if currentGame.finished then return nil end
 	--gear changes use key_pressed
 	if win:key_pressed("a") then
 		self.controls.gear_up = true
 		self.controls.gear_down = false
-	elseif win:key_pressed("z") then
+	elseif win:key_pressed("s") then
 		self.controls.gear_up = false
 		self.controls.gear_down = true
 	else
@@ -214,16 +213,17 @@ function car:updateControls()
 	end
 end
 	
-function car:createNode()
+function car:createNode(adjustments)
 	local carParts = am.group()
 	local carNode = am.group(am.translate(vec2(0,0))^am.rotate(0)^carParts,am.text(""))
 	carParts:append(self.body.node)
 	for index,axles in pairs(self.axles) do
 		carParts:append(self.body.axleOffsetNodes[index]^self.axles[index].node)
 	end
-	self.body.state.y[0] = (-self.body.params.axleOffsets[1].y+1)/50
+	self:applyAdjustments(adjustments)
 	self.body.state.x[0] = 0
 	self.body.state.x[1] = 0
+	self.body.state.y[0] = currentGame.mobileScene"roadSurface":getHeight(self.body.state.x[0])+(-self.body.params.axleOffsets[1].y)/50+1
 	carNode.parent = self
 	carNode:action( function (bodySprite)
 		if not win:key_down("space") then
@@ -250,7 +250,7 @@ function car:createNode()
 		--bodySprite"text".text = ""..tostring(bodySprite.parent.body.state.y[0]).." "..tostring(bodySprite.parent.body.state.y[1]).."\n"..tostring(bodySprite.parent.axles[1].state.y[0]).." "..tostring(bodySprite.parent.axles[1].state.y[1])
 	end
 	)
-	return carNode
+	return carNode:tag("vehicle")
 end
 
 --Controls
@@ -277,6 +277,51 @@ function car:createTelemetry(variablesTable)
 	return --need function that actually collects each value every few frames
 end
 
+function car:applyAdjustments(adjustmentList)
+	local adjustmentList = adjustmentList or {}
+	self.body.inertia.x = adjustmentList.body_Mass or self.body.inertia.x
+	self.body.inertia.y = adjustmentList.body_Mass or self.body.inertia.y
+	self.body.inertia.theta = adjustmentList.body_rInertia or self.body.inertia.theta
+	self.body.params.dragCoefficient = adjustmentList.body_dragCoefficient or self.body.params.dragCoefficient
+	for index,axle in self:iterateOverAxles() do
+		axle.params.radius = adjustmentList.axle_radius or axle.params.radius
+		axle.params.springRate = adjustmentList.axle_springRate or axle.params.springRate
+		axle.params.dampingRate = adjustmentList.axle_dampingRate or axle.params.dampingRate
+		axle.params.maxBrakeTorque = adjustmentList.axle_maxBrakeTorque or axle.params.maxBrakeTorque
+		axle.params.tyreStiffness = adjustmentList.axle_tyreStiffness or axle.params.tyreStiffness
+		axle.params.peakFriction = adjustmentList.axle_peakFriction or axle.params.peakFriction
+		axle.params.maxSlipFriction = adjustmentList.axle_maxSlipFriction or axle.params.maxSlipFriction
+	end
+	local frontAxle = self.axles[1]
+	frontAxle.params.radius = adjustmentList.frontAxle_radius or frontAxle.params.radius
+	frontAxle.params.springRate = adjustmentList.frontAxle_springRate or frontAxle.params.springRate
+	frontAxle.params.dampingRate = adjustmentList.frontAxle_dampingRate or frontAxle.params.dampingRate
+	frontAxle.params.maxBrakeTorque = adjustmentList.frontAxle_maxBrakeTorque or frontAxle.params.maxBrakeTorque
+	frontAxle.params.tyreStiffness = adjustmentList.frontAxle_tyreStiffness or frontAxle.params.tyreStiffness
+	frontAxle.params.peakFriction = adjustmentList.frontAxle_peakFriction or frontAxle.params.peakFriction
+	frontAxle.params.maxSlipFriction = adjustmentList.frontAxle_maxSlipFriction or frontAxle.params.maxSlipFriction
+	local rearAxle = self.axles[#self.axles]
+	rearAxle.params.radius = adjustmentList.rearAxle_radius or rearAxle.params.radius
+	rearAxle.params.springRate = adjustmentList.rearAxle_springRate or rearAxle.params.springRate
+	rearAxle.params.dampingRate = adjustmentList.rearAxle_dampingRate or rearAxle.params.dampingRate
+	rearAxle.params.maxBrakeTorque = adjustmentList.rearAxle_maxBrakeTorque or rearAxle.params.maxBrakeTorque
+	rearAxle.params.tyreStiffness = adjustmentList.rearAxle_tyreStiffness or rearAxle.params.tyreStiffness
+	rearAxle.params.peakFriction = adjustmentList.rearAxle_peakFriction or rearAxle.params.peakFriction
+	rearAxle.params.maxSlipFriction = adjustmentList.rearAxle_maxSlipFriction or rearAxle.params.maxSlipFriction
+	local electricMotor = false
+	local icEngine = false
+	local manualGearbox = false
+	for index, powertrainComponent in self:iterateOverPowertrain() do
+		if powertrainComponent.componentSubType == "electricMotor" then
+			electricMotor = powertrainComponent
+		end
+	end
+	if electricMotor then
+		electricMotor.params.maxTorque = adjustmentList.motor_maxTorque or electricMotor.params.maxTorque
+		electricMotor.params.maxPower = adjustmentList.motor_maxPower or electricMotor.params.maxPower
+		electricMotor.constraints.output.ratio = adjustmentList.motor_driveRatio or electricMotor.constraints.output.ratio
+	end
+end
 
 
 --dofile("componentLibrary.lua")

@@ -9,13 +9,14 @@ function game:new(g)
 	assert(#g.vehicle >= 1,"Error! No vehicles defined for game object")
 	assert(g.backdrop, "Error! No backdrop defined for game object")
 	setmetatable(newGame, self)
+	newGame.endCondition = g.endCondition or math.huge
 	self.__index = self
 	newGame.pause = false
 	newGame.isGame = true
 	return newGame
 end
 
-function game:start()
+function game:start(data)
 	currentGame = self
 	self.mobileScene = am.translate(vec2(0,0))^am.group()
 	self.mobileScene:action( function (mobileScene)
@@ -29,13 +30,15 @@ function game:start()
 	--end
 	self.mobileScene:append(self.roadNode:tag"roadSurface")
 	for index,vehicle in pairs(self.vehicle) do
-		self.mobileScene:append(vehicle:createNode())
+		self.mobileScene:append(vehicle:createNode(data))
 	end
-	win.scene:append(self:generateBackdrop(self.backdrop.sprite,self.backdrop.movement,self.backdrop.offset))
-	win.scene:append(self.mobileScene)
+	win.scene:append(self:generateBackdrop(self.backdrop.sprite,self.backdrop.movement,self.backdrop.offset):tag("backdrop"))
+	win.scene:append(self.mobileScene:tag("mobileScene"))
 	win.scene:append(self.gui)
 	local fpsCounter = am.translate(vec2(-200,200))^am.text("")
 	fpsCounter:action( function (fpsNode)
+		self:checkWinCondition()
+		if win:key_pressed("t") then print(am.frame_time) end
 		local str = ""
 		for k,v in pairs(am.perf_stats()) do
 			str = str..k.." "..v.."\n"
@@ -43,7 +46,7 @@ function game:start()
 		fpsNode"text".text = str
 		end
 	)
-	win.scene:append(fpsCounter)
+	win.scene:append(fpsCounter:tag("gameMonitor"))
 end
 
 function game:updateCamera(car)
@@ -60,13 +63,45 @@ function game:unpause()
 	win.scene:remove(self.pauseMenu)
 end
 
+function game:triggerEnd()
+	local endNode = am.scale(10)^am.text("FINISH",vec4(1,1,1,0))
+	endNode.startTime = am.frame_time
+	endNode:action(
+		function(self)
+			local fadeInTime = 2
+			local gameKillTime = 5
+			local timeSinceTrigger = am.frame_time - self.startTime
+			self"text".color = vec4(1,1,1,math.min(timeSinceTrigger/fadeInTime,1))
+			if timeSinceTrigger >= fadeInTime + gameKillTime then
+				currentGame:kill()
+				win.scene:remove(self)
+			end
+		end
+	)
+	win.scene:append(endNode)
+end
+
+function game:checkWinCondition()
+	if self.vehicle[1].body.state.x[0] > self.endCondition and self.finished ~= true then
+		self:triggerEnd()
+		self.finished = true
+	end
+end
+
 function game:kill()
 	currentGame = nil
-	win.scene:remove(self.mobileScene)
-	for index,vehicle in pairs(self.vehicle) do
-		win.scene:remove(vehicle)
+	win.scene:remove("mobileScene")
+	win.scene:remove("gameMonitor")
+	vehiclesRemain = true
+	while win.scene"vehicle" do
+		vehiclesRemain = win.scene:remove("vehicle")
+	end
+	backdropsRemain = true
+	while win.scene"backdrop" do
+		backdropsRemain = win.scene:remove("backdrop")
 	end
 	win.scene:remove(self.gui)
+	self.finished = false
 	--If there is no level structure defined, then the application will be closed at the end of the game
 	if currentLevel then
 		currentLevel:nextStage(self.scoreState)
@@ -100,7 +135,7 @@ function game:generateBackdrop(sprite,relativeMovement,offset)
 	for i=0,coverageRequirement-1 do
 		backdropNode:append(newBackdropSprite(i*am.sprite(sprite).width))
 	end
-	return backdropNode
+	return backdropNode:tag("backdrop")
 end
 
 return game

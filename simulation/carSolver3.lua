@@ -1,5 +1,5 @@
 matrix = require('3rd_party.matrix')
-
+telemFile = io.open("telemetry.csv","w")
 function carSolver(car,dt)
 	--Create state vector
 	state = {}
@@ -16,6 +16,7 @@ function carSolver(car,dt)
 	k4 = stateDeriv(car,state+k3*dt)	
 	local newState = state + dt * (k1+2*k2+2*k3+k4) / 6
 	assignState(car,newState)
+	k1,k2,k3,k4 = nil
 	return dt
 end
 
@@ -69,7 +70,11 @@ function stateDeriv(car, state)
 	end
 	local F = matrix(forceTable)
 	local M = matrix(massMatrixTable)
-		--Solve matrix-vector equationlocal 
+	for _,v in pairs(F) do
+		telemFile:write(v[1]..",") 
+	end
+	telemFile:write("\n")
+	--Solve matrix-vector equationlocal 
 	local A = matrix.div(F:transpose(),M:transpose())
 	return A:transpose()
 end

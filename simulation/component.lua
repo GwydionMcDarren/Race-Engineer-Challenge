@@ -71,7 +71,6 @@ function body:new(b)
 	newBody.inertia.y = b.mass or 1e3
 	newBody.inertia.theta = b.rInertia or 1e4
 	newBody.params = {
-		massOffset = (b.offset or vec2(0,0)),
 		numAxles = (b.axles or 2),
 		dragCoefficient = (b.dragCoefficient or 0.3),
 		axleOffsets = b.axleOffsets,

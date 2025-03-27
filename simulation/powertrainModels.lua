@@ -11,12 +11,14 @@ function electricMotorPowertrain:new(maxPower, maxTorque, rInertia, drivenAxles,
 	local newElectricMotor = component:new{
 		dimensions = {"theta"},
 		componentType = "powertrain",
+		componentSubType = "electricMotor",
 		netForce = function (self)
-			return {self.parent.controls.throttle * math.min(self.params.maxTorque, self.params.maxPower / math.abs(self.state.theta[1])), 0}
+			return {self.parent.controls.throttle * self.direction * math.min(self.params.maxTorque, self.params.maxPower / math.abs(self.state.theta[1])), 0}
 		end,
 		update = function (self)
-			if self.parent.controls.gear_up or self.parent.controls.gear_up then
-				if self.state.theta[1] * self.direction < 1 then
+			if self.parent.controls.gear_up or self.parent.controls.gear_down then
+				print("gear change attempted!", self.direction)
+				if self.state.theta[1] * self.direction < 5 then
 					self.direction = self.direction * -1
 				end
 			end

@@ -8,7 +8,7 @@ componentLibrary.bodies = {
 		mass = 1500, --kg
 		rInertia = 2.56*1500 - 1103, --kg m^2
 		axles = 2,
-		dragCoefficient = 0.3,
+		dragCoefficient = 20,
 		axleOffsets = {
 			vec2(68,-19-(static_vertical_displacement*83/(83+68))),
 			vec2(-83,-19-(static_vertical_displacement*68/(83+68)))
@@ -20,7 +20,7 @@ componentLibrary.bodies = {
 		mass = 1300, --kg
 		rInertia = 2.56*1300 - 1103, --kg m^2
 		axles = 2,
-		dragCoefficient = 0.3,
+		dragCoefficient = 2,
 		axleOffsets = {
 			vec2(67,-18-(static_vertical_displacement*71/(67+71))),
 			vec2(-71,-18-(static_vertical_displacement*67/(71+67)))
@@ -32,7 +32,7 @@ componentLibrary.bodies = {
 		mass = 800, --kg
 		rInertia = 2.56*800 - 1103, --kg m^2
 		axles = 2,
-		dragCoefficient = 0.3,
+		dragCoefficient = 20,
 		axleOffsets = {
 			vec2(59,-17-(static_vertical_displacement*62/(59+62))),
 			vec2(-62,-17-(static_vertical_displacement*59/(59+62))),
@@ -44,7 +44,7 @@ componentLibrary.bodies = {
 		mass = 10000, --kg
 		rInertia = 2.56*10000 - 1103, --kg m^2
 		axles = 3,
-		dragCoefficient = 0.6,
+		dragCoefficient = 20,
 		axleOffsets = {
 			vec2(48, -17-static_vertical_displacement/2),
 			vec2(-113, -17-static_vertical_displacement/2),
@@ -87,7 +87,7 @@ componentLibrary.axles = {
 		rInertia = 15,
 		radius = 0.46,
 		springRate = 1e6,
-		dampingRate = 8e3,
+		dampingRate = 4e4,
 		maxBrakeTorque = 1e5,
 		tyreStiffness = 5e6,
 		sprite = "graphics/lorry_wheel.png",

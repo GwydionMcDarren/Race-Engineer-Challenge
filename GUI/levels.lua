@@ -31,9 +31,9 @@ function levels:startLevel()
 	currentLevel = self
 	currentLevel.stage = 1	
 	if self[1].isGame then
-		self[1]:start()
+		self[1]:start(self.data)
 	else
-		self[1]:initialise()
+		self[1]:initialise(self.data)
 	end
 end
 
@@ -43,17 +43,13 @@ function levels:nextStage(data)
 	local decisionIndex, playerData = self:passFail(self.stage,data) or 1
 	
 	self.stage = self.stage + decisionIndex
-	
+	self.data = data or {}	
 	if self[self.stage].isGame then
-		self[self.stage]:start(playerData)
+		self[self.stage]:start(data)
 	else
-		self[self.stage]:initialise(playerData)
+		self[self.stage]:initialise(data)
 	end
-	self.data = data
-	iterativeTablePrint(currentLevel.data)
 end
 --Default sandbox level is also defined
-
-
 
 return levels
