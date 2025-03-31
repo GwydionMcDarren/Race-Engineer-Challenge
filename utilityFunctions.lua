@@ -55,6 +55,19 @@ function iterativeTablePrint(t,i)
 	end
 end
 
+function iterativeTableDestroy(t,i)
+	i = i or 0
+	for k,v in pairs(t) do
+		if k~="__index" and k~="parent" then --If __index or parent is set then we get recursive infinite loops
+			if type(v) == "table" then
+				iterativeTablePrint(v,i+1)
+			else
+				t[k] = nil
+			end
+		end
+	end
+end
+
 function listTable(t,i)
 	local i = i or 1
 	if t[i] then

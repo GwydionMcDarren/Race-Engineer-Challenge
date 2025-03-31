@@ -51,23 +51,20 @@ end
 function roadSurface:getHeight(x)
 	if x <= self.x[1] then return self.y[1] end
 	if x >= self.x[#self.x] then return self.y[#self.y] end
-	local highIndex = 1
-	for index,xVal in pairs(self.x) do
-		if xVal > x then 
-			highIndex = index 
-			break 
+	local highIndex = #self.x
+	local lowIndex = 1
+	while highIndex - lowIndex > 1 do
+		local guessIndex = math.floor((highIndex+lowIndex)/2)
+		if guessIndex == lowIndex then highIndex = guessIndex + 1
+		elseif self.x[guessIndex] > x then highIndex = guessIndex
+		else lowIndex = guessIndex
 		end
 	end
-	if not highIndex then 
-		highIndex = #self.x
-	elseif highIndex == 1 then
-		highIndex = 2
-	end
-	local lowIndex = highIndex - 1
 	local lowX = self.x[lowIndex]
 	local highX = self.x[highIndex]
 	local lowY = self.y[lowIndex]
 	local highY = self.y[highIndex]
+	--print(self.x[lowIndex],self.x[highIndex],lowIndex,highIndex,x)
 	return linearInterpolate(lowX,highX,lowY,highY,x)
 end
 

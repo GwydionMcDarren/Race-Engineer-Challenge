@@ -8,7 +8,7 @@ componentLibrary.bodies = {
 		mass = 1500, --kg
 		rInertia = 2.56*1500 - 1103, --kg m^2
 		axles = 2,
-		dragCoefficient = 20,
+		dragCoefficient = 2,
 		axleOffsets = {
 			vec2(68,-19-(static_vertical_displacement*83/(83+68))),
 			vec2(-83,-19-(static_vertical_displacement*68/(83+68)))
@@ -32,7 +32,7 @@ componentLibrary.bodies = {
 		mass = 800, --kg
 		rInertia = 2.56*800 - 1103, --kg m^2
 		axles = 2,
-		dragCoefficient = 20,
+		dragCoefficient = 2,
 		axleOffsets = {
 			vec2(59,-17-(static_vertical_displacement*62/(59+62))),
 			vec2(-62,-17-(static_vertical_displacement*59/(59+62))),
@@ -44,7 +44,7 @@ componentLibrary.bodies = {
 		mass = 10000, --kg
 		rInertia = 2.56*10000 - 1103, --kg m^2
 		axles = 3,
-		dragCoefficient = 20,
+		dragCoefficient = 5,
 		axleOffsets = {
 			vec2(48, -17-static_vertical_displacement/2),
 			vec2(-113, -17-static_vertical_displacement/2),
@@ -78,8 +78,8 @@ componentLibrary.axles = {
 		maxBrakeTorque = 800,
 		tyreStiffness = 8e5,
 		sprite = "graphics/old_wheel.png",
-		peakFriction = 1.02,
-		maxSlipFriction = 0.88,
+		peakFriction = 1.22,
+		maxSlipFriction = 1.03,
 	},
 	lorry_front_wheel = axle:new{
 		name = "Lorry front wheel (920mm diameter)",
@@ -88,7 +88,7 @@ componentLibrary.axles = {
 		radius = 0.46,
 		springRate = 1e6,
 		dampingRate = 4e4,
-		maxBrakeTorque = 1e5,
+		maxBrakeTorque = 1e4,
 		tyreStiffness = 5e6,
 		sprite = "graphics/lorry_wheel.png",
 	},
@@ -99,12 +99,14 @@ componentLibrary.axles = {
 		radius = 0.46,
 		springRate = 2e5,
 		dampingRate = 7e3,
-		maxBrakeTorque = 1e5,
+		maxBrakeTorque = 1e4,
 		tyreStiffness = 5e6,
 		sprite = "graphics/lorry_wheel_rear.png",
 	},
 }
 
-componentLibrary.powertrain = {}
+componentLibrary.powertrain = {
+	low_power_electric_motor = electricMotorPowertrain:new(110e3, 320, 50, {1}, 8),
+	high_power_electric_motor = electricMotorPowertrain:new(500e3, 500, 50, {1,2}, 5),}
 
 return componentLibrary

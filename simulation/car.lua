@@ -1,5 +1,6 @@
 require 'simulation.component'
 require 'simulation.carSolver3'
+require '3rd_party.profiler'
 
 car = {}
 car.__index = car
@@ -8,7 +9,7 @@ function car:iterateOverDoF()
 	local a = 0
 	local aMax = 3
 	local b = 0
-	local bMax = #self.axles*3
+	local bMax = self.body.params.numAxles*3
 	local c = 0
 	local cMax = #self.powertrain
 	local i=0
@@ -27,7 +28,19 @@ function car:iterateOverDoF()
 	end
 end
 
-function car:iterateOverComponents()
+function car:iterateOverDoF_new()
+	local i=0
+	return function () 
+		i=i+1
+		if i<=3 then 
+			return i, self.body, self.dimensionsRefList[i][3]
+		elseif self.dimensionsRefList[i] then 
+			return i, self[self.dimensionsRefList[i][1]][self.dimensionsRefList[i][2]],  self.dimensionsRefList[i][3]
+		else return nil end
+	end
+end
+
+function car:iterateOverComponents_old()
 	local a = 0
 	local b = 0
 	local bMax = #self.axles
@@ -39,6 +52,18 @@ function car:iterateOverComponents()
 		if a<1 then a=a+1 return i, self.body
 		elseif b<bMax then b=b+1 return i, self.axles[b]
 		elseif c<cMax then c=c+1 return i, self.powertrain[c]
+		else return nil end
+	end
+end
+
+function car:iterateOverComponents()
+	local i=0
+	return function () 
+		i=i+1
+		if self.dimensionsRefList[i] then
+			if self.dimensionsRefList[i][2] then return i, self[self.dimensionsRefList[i][1]][self.dimensionsRefList[i][2]]		
+			else return i, self[self.dimensionsRefList[i][1]]
+			end
 		else return nil end
 	end
 end
@@ -65,10 +90,7 @@ function car:iterateOverPowertrain()
 end
 
 function car:getNumDoF()
-	local bodyDoF = 3
-	local axlesDoF = #self.axles * 3
-	local powertrainDoF = #self.powertrain
-	return bodyDoF + axlesDoF + powertrainDoF
+	return #self.dimensionsRefList
 end
 
 function car:getComponentDimensionIndex(componentIndex,dimension)
@@ -97,14 +119,18 @@ function car:applyConstraints(component,forceIn,dimension,forceTable,massMatrixT
 		if powertrainComponent.constraints.output then
 			local outputConstraint = powertrainComponent.constraints.output
 			if outputConstraint.type == "fixed-axle" then
-				local outputTorque = forceTable[powertrainComponentIndex][1] *  (outputConstraint.ratio)/#outputConstraint.axles
-				local effectiveInertia = powertrainComponent.inertia.theta*(outputConstraint.ratio)/#outputConstraint.axles
+				local outputTorque = forceTable[powertrainComponentIndex][1] * outputConstraint.ratio/#outputConstraint.axles
+				--local effectiveInertia = powertrainComponent.inertia.theta*(outputConstraint.ratio^2)/#outputConstraint.axles
 				for index,axleIndex in ipairs(outputConstraint.axles) do
 					local axleDimensionIndex = (self.axles[axleIndex].firstDimensionIndex+2) * 2
 					forceTable[axleDimensionIndex][1] = forceTable[axleDimensionIndex][1] + outputTorque
-					massMatrixTable[axleDimensionIndex][axleDimensionIndex] = massMatrixTable[axleDimensionIndex][axleDimensionIndex] + effectiveInertia
+					for i=1,#massMatrixTable do
+						massMatrixTable[axleDimensionIndex][i] = massMatrixTable[axleDimensionIndex][i] + massMatrixTable[powertrainComponentIndex][i]/((outputConstraint.ratio^2)*#outputConstraint.axles)
+						massMatrixTable[powertrainComponentIndex][i] = 0
+					end
 					massMatrixTable[powertrainComponentIndex][powertrainComponentIndex] = -1
-					massMatrixTable[powertrainComponentIndex][axleDimensionIndex] = outputConstraint.ratio		
+					massMatrixTable[powertrainComponentIndex][axleDimensionIndex] = outputConstraint.ratio
+					--print(axle.axleIndex, outputTorque, effectiveInertia)
 				end
 				forceTable[powertrainComponentIndex] = {0,0}
 			end
@@ -157,6 +183,16 @@ function car:new(body,axles,powertrain, isPlayer, adjustments)
 		newCar.powertrain[i].dimensionIndices = {}
 	end
 	setmetatable(newCar, self)
+	newCar.dimensionsRefList = {}
+	for i=1,3 do 
+		newCar.dimensionsRefList[i] = {"body", nil, newCar.body.dimensions[i]}
+	end
+	for i=4,3*#newCar.axles+3 do 
+		newCar.dimensionsRefList[i] = {"axles", math.ceil((i-3)/3), newCar.axles[math.ceil((i-3)/3)].dimensions[(i-4)%3+1]}
+	end
+	for i=3*#newCar.axles+4,3*#newCar.axles+3+#newCar.powertrain do 
+		newCar.dimensionsRefList[i] = {"powertrain", i-(3*#newCar.axles+3), newCar.powertrain[i-(3*#newCar.axles+3)].dimensions[1]}
+	end
 	--Iterate over car dimensions and initialise state
 	for componentDimensionIndex,component,dimension in newCar:iterateOverDoF() do
 		table.insert(component.dimensionIndices,componentDimensionIndex)
@@ -166,9 +202,8 @@ function car:new(body,axles,powertrain, isPlayer, adjustments)
 		component.firstDimensionIndex = math.min(listTable(component.dimensionIndices))
 		component.componentIndex = componentIndex
 		component.parent = newCar
-		print(component.firstDimensionIndex, component.name)
 	end
-	for index,axle in ipairs(newCar.axles) do
+	for index,axle in newCar:iterateOverAxles() do
 		axle.axleIndex = index
 	end
 	newCar.controls = {
@@ -218,16 +253,16 @@ function car:createNode(adjustments)
 	local carNode = am.group(am.translate(vec2(0,0))^am.rotate(0)^carParts,am.text(""))
 	carParts:append(self.body.node)
 	for index,axles in pairs(self.axles) do
+		print(index,axles,axleIndex)
 		carParts:append(self.body.axleOffsetNodes[index]^self.axles[index].node)
 	end
 	self:applyAdjustments(adjustments)
 	self.body.state.x[0] = 0
 	self.body.state.x[1] = 0
-	self.body.state.y[0] = currentGame.mobileScene"roadSurface":getHeight(self.body.state.x[0])+(-self.body.params.axleOffsets[1].y)/50+1
+	self.body.state.y[0] = currentGame.mobileScene"roadSurface":getHeight(self.body.state.x[0])+(-self.body.params.axleOffsets[1].y/50)+0.2
 	carNode.parent = self
 	carNode:action( function (bodySprite)
 		if not win:key_down("space") then
-		
 		ts = 1/(60*num_steps)
 		timestep = 0
 		while timestep <= am.delta_time do
@@ -247,7 +282,6 @@ function car:createNode(adjustments)
 		self:updateControls()
 		bodySprite"translate".position2d = vec2(bodySprite.parent.body.state.x[0],bodySprite.parent.body.state.y[0])*50
 		bodySprite"rotate".angle = bodySprite.parent.body.state.theta[0]
-		--bodySprite"text".text = ""..tostring(bodySprite.parent.body.state.y[0]).." "..tostring(bodySprite.parent.body.state.y[1]).."\n"..tostring(bodySprite.parent.axles[1].state.y[0]).." "..tostring(bodySprite.parent.axles[1].state.y[1])
 	end
 	)
 	return carNode:tag("vehicle")

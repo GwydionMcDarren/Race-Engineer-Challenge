@@ -43,7 +43,13 @@ function levels:nextStage(data)
 	local decisionIndex, playerData = self:passFail(self.stage,data) or 1
 	
 	self.stage = self.stage + decisionIndex
-	self.data = data or {}	
+	self.data = data or {}
+	if not self[self.stage] then
+		mainMenu:initialise()
+		currentLevel = nil
+		defineLevels()
+		return
+	end
 	if self[self.stage].isGame then
 		self[self.stage]:start(data)
 	else
@@ -51,5 +57,74 @@ function levels:nextStage(data)
 	end
 end
 --Default sandbox level is also defined
+
+function levels:createNormalLevel(levelData)
+	local levelData = levelData or {}
+	local levelTable = {}
+	levelTable.name = levelData.name or "Unnamed level"
+	levelTable[1] = {
+	[1] = menu:new{
+		am.translate(vec2(0,200))^wrappedtext(levelData.introText or "<Missing introText>",vec4(1,1,1,1),600),
+		newButton{
+			size=vec2(150,50),
+			position=vec2(-75,-200),
+			colour=vec4(0,0.9,0.4,1),
+			label="Continue",
+			labelColour=vec4(1,1,1,1),
+			clickFunction = 
+				function()
+					closeMenuAndContinue()
+				end
+		},
+	},	
+	[2] = game:new{
+	vehicle = {
+		car:new(
+			componentLibrary.bodies.hatchback,
+			{
+				componentLibrary.axles.basic_wheel,
+				componentLibrary.axles.basic_wheel,
+			},
+			{
+				electricMotorPowertrain:new(75e3*4, 200, 30, {1}, 30),
+			}
+		),
+	},
+	roadNode = roadSurface:new(createWavyRoad("x"),createWavyRoad("y",200)),
+	backdrop = {
+		sprite = backgroundHillSprite,
+		movement = 5,
+		offset = vec2(0,0)
+	},
+	gui = gui:newElement{
+		trackingVariable = "front_axle_speed",
+		unit_scaling = 0.32*2.25,
+		max = 90,
+		min = 0,
+		valueIsAbs = true,
+		location = vec2(0,-150),
+	},
+	endCondition = 30,
+	scoreMode = "maxSpeed",
+	},
+	[3] = menu:new{
+		am.rect(-400,-300,400,300,vec4(0,0.5,0.5,1)),
+		am.translate(vec2(0,200))^liveText("You ##D the level",vec4(1,1,1,1),1),
+		newButton{
+			size=vec2(150,50),
+			position=vec2(-75,-25),
+			colour=vec4(0,0.9,0.4,1),
+			label="Continue",
+			labelColour=vec4(1,1,1,1),
+			clickFunction = 
+				function() 
+					level1[3]:close()
+				end},
+	}
+	}
+		
+	local newLevel = levels:new(levelTable)
+	return newLevel
+end
 
 return levels

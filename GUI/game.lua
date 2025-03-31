@@ -1,4 +1,5 @@
 game = {}
+require '3rd_party.profiler'
 --Game is a class that contains data about a certain game session.
 --It has methods that initiate the game-playing state, as well as game funuctions such as pausing, quitting, and reporting player score to the level.
 --Typically it will contain a car, a telemerty specification for that car, in order to collect score data, a backdrop, and a road surface.
@@ -32,21 +33,33 @@ function game:start(data)
 	for index,vehicle in pairs(self.vehicle) do
 		self.mobileScene:append(vehicle:createNode(data))
 	end
+	self.currentScore = 0
+	self.currentProgress = 0
+	self.gameTime = 0
 	win.scene:append(self:generateBackdrop(self.backdrop.sprite,self.backdrop.movement,self.backdrop.offset):tag("backdrop"))
 	win.scene:append(self.mobileScene:tag("mobileScene"))
 	win.scene:append(self.gui)
-	local fpsCounter = am.translate(vec2(-200,200))^am.text("")
-	fpsCounter:action( function (fpsNode)
-		self:checkWinCondition()
+	if self.menu then
+		win.scene:append(self.menu:tag("menu"))
+	end
+	local scoreCounter = am.translate(vec2(-200,200))^am.text("")
+	profiler = newProfiler()
+			profiler:start()
+	scoreCounter:action( function (scoreCounter)
+		self.currentScore = self:updateScore(self.scoreMode, self.currentScore)
+		self.currentProgress = self:updateScore(self.endMode, self.currentProgress)
+		if not self.finished then self:measureTime() end
+		self:checkWinCondition(self.currentProgress)
 		if win:key_pressed("t") then print(am.frame_time) end
 		local str = ""
 		for k,v in pairs(am.perf_stats()) do
 			str = str..k.." "..v.."\n"
 		end
-		fpsNode"text".text = str
+		str = str.."Score: "..self.currentScore
+		scoreCounter"text".text = str
 		end
 	)
-	win.scene:append(fpsCounter:tag("gameMonitor"))
+	win.scene:append(scoreCounter:tag("gameMonitor"))
 end
 
 function game:updateCamera(car)
@@ -81,26 +94,36 @@ function game:triggerEnd()
 	win.scene:append(endNode)
 end
 
-function game:checkWinCondition()
-	if self.vehicle[1].body.state.x[0] > self.endCondition and self.finished ~= true then
+function game:checkWinCondition(currentScore)
+	if currentScore > self.endCondition and self.finished ~= true then
 		self:triggerEnd()
 		self.finished = true
 	end
 end
 
 function game:kill()
+	   profiler:stop()
+	print("profiler stopped")
+    local outfile = io.open( "profile.txt", "w+" )
+    profiler:report( outfile )
+    outfile:close()
 	currentGame = nil
 	win.scene:remove("mobileScene")
 	win.scene:remove("gameMonitor")
+	win.scene:remove("menu")
 	vehiclesRemain = true
 	while win.scene"vehicle" do
+		win.scene"vehicle":remove_all()
+		iterativeTableDestroy(win.scene"vehicle".parent)
 		vehiclesRemain = win.scene:remove("vehicle")
+		win.scene:remove_all()
 	end
 	backdropsRemain = true
 	while win.scene"backdrop" do
 		backdropsRemain = win.scene:remove("backdrop")
 	end
 	win.scene:remove(self.gui)
+	win.scene:remove_all()
 	self.finished = false
 	--If there is no level structure defined, then the application will be closed at the end of the game
 	if currentLevel then
@@ -136,6 +159,27 @@ function game:generateBackdrop(sprite,relativeMovement,offset)
 		backdropNode:append(newBackdropSprite(i*am.sprite(sprite).width))
 	end
 	return backdropNode:tag("backdrop")
+end
+
+function game:updateScore(scoreMode, currentScore)
+	scoreMode = scoreMode or "maxDistance"
+	currentScore = currentScore or 0
+--Game modes:
+	--Speed
+	--Time
+	--Distance
+	if scoreMode == "maxSpeed" then
+		currentScore = math.max(currentScore, math.sqrt(currentGame.vehicle[1].body.state.x[1]^2+currentGame.vehicle[1].body.state.y[1]^2))
+	elseif scoreMode == "maxDistance" then
+		currentScore = math.max(currentScore, math.sqrt(currentGame.vehicle[1].body.state.x[0]^2+currentGame.vehicle[1].body.state.y[0]^2))
+	elseif scoreMode == "time" then
+		currentScore = currentScore + am.delta_time
+	end
+	return currentScore
+end
+
+function game:measureTime()
+	self.gameTime = self.gameTime + am.delta_time
 end
 
 return game

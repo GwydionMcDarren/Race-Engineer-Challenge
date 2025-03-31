@@ -1,1 +1,1 @@
-amulet export -html -r -a
+amulet export -html -windows -mac -r -a

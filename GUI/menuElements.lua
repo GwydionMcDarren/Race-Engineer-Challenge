@@ -216,3 +216,26 @@ function liveText(str, colour, firstData)
 	)
 	return textNode
 end
+	
+function wrappedText(str, colour, width)
+	local stringLength = string.len(str)
+	for i=1,math.floor(stringLength/width) do
+		local nextSpaceIndex = string.find(str," ",i*width)
+		if nextSpaceIndex then
+			str = string.sub(str,1,nextSpaceIndex-1).."\n"..string.sub(str,nextSpaceIndex+1,-1)
+		end
+	end
+	local textNode = am.text(str, colour)
+	textNode:action( function (liveTextNode)
+		liveTextNode.text = str
+		for i,v in ipairs(currentLevel.data) do
+			if i >= firstData then
+				liveTextNode.text = string.gsub(liveTextNode.text, "##D", v, 1)
+			end
+		end
+	end
+	)
+	return textNode
+end
+
+

@@ -3,3 +3,23 @@
 	--Car specificaiton will be based on vehicle components, defined in xml files.
 --It will also define the map that the user will drive on.
 	--Maps are formed of terrain, terrain colour, near backdrop and distant backdrop.
+--Levels have 4 stages
+	--Info menu with 3+ features: Text, image*, back button, next button
+		--Text: static, states level goal and the player possible action
+		--Image: may show vehicle related data
+		--Back button: kills current level, re-initiates level, restarts main menu
+		--Next button: triggers next stage of the menu system, no data carried forward. Kills current menu.
+	--Setup menu with 4+ features: Text, setup options, back button, next button
+		--Text: static, states level goal and the player possible action
+		--Setup options: slider or radio select to ???
+		--Back button: reset level, kill level, start level
+		--Next button: start game, carry forward any setup data, kill current menu
+	--Game with 2 buttons: Restart, quit
+		--Restart button: re-initialise game with same settings
+		--Quit button: kill game, kill level, reload level, restart level
+		--(End trigger: kill game, initialise next menu, carry over score/telemetary data)
+	--Feedback menu with 3-4 features: Feedback text, quit button, retry button, next level button*
+		--Feedback text: Static text telling user they have passed or failed the level
+		--Quit button: Store level success data, kill level, reinitialise level, open main menu
+		--Retry button: Store level success data, kill level, reinitialise level, start level from stage 2
+		--Next level button: only show if level pass criteria met. Store level success data, kill level, reinitialise level, start next level if defined

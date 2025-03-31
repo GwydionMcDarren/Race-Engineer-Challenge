@@ -43,7 +43,7 @@ function component:newInstance(adjustmentList)
 	setmetatable(newInstance, self)
 	print("--", newInstance.name, "--")
 	for k,v in pairs(newInstance.state) do
-		print(k,v)
+		print(k,v[0], v[1])
 	end
 	if type(self.createNode) == "function" then
 		newInstance.node = newInstance:createNode()
@@ -162,11 +162,11 @@ function axle:new(a)
 end
 
 function axle:createNode()
+	print(self.axleIndex, "New axle sprite node created!")
 	local spriteNode = am.translate(vec2(0,0))^am.rotate(0)^am.sprite((self.sprite))
-	spriteNode.parent = self
 	spriteNode:action( function (axleSprite)
-			axleSprite"translate".position2d = vec2(axleSprite.parent.state.x[0],axleSprite.parent.state.y[0])*50
-			axleSprite"rotate".angle = -axleSprite.parent.state.theta[0]
+			axleSprite"translate".position2d = vec2(self.state.x[0],self.state.y[0])*50
+			axleSprite"rotate".angle = -self.state.theta[0]
 		end
 	)
 	return spriteNode
@@ -174,41 +174,49 @@ end
 	
 
 function axle:update()
+	self.state.theta[0] = self.state.theta[0]%(math.pi*2)
 	--self.state.y[0] = math.max(math.min(self.params.radius,self.state.y[0]),-self.params.radius)
 	--Check if brakes are being applied
 	--self.params.brakeApplication = self.parent.controls.brakeApplication[self.componentIndex] or 0
 end
 
 function axle:recalc()
-	self.calcs = {}
+	if not self.calcs then self.calcs = {} end
+	self.calcs.getAxleXPos = self:calcAxleXPos()	
+	self.calcs.getAxleYPos = self:calcAxleYPos()
 	self.calcs.getContactAngle = self:calcContactAngle()
 	self.calcs.getAxleRoadDistance = self:calcAxleRoadDistance()
 	self.calcs.getSuspensionForce = self:calcSuspensionForce()
 	self.calcs.getSlip = self:calcSlip()
 end
 
-function  axle:calcAxleRoadDistance()
+function axle:calcAxleXPos()
 	local bodyAngle = self.parent.body.state.theta[0]
-	local axleXPos = self.parent.body.state.x[0] - 
+	return self.parent.body.state.x[0] - 
 	self.state.y[0] * math.sin(bodyAngle) +	
 	self.parent.body.params.axleOffsets[self.axleIndex].x/50 * math.cos(bodyAngle) - 
 	self.parent.body.params.axleOffsets[self.axleIndex].y/50 * math.sin(bodyAngle)
-	local axleYPos = self.parent.body.state.y[0] +
+end
+
+function axle:calcAxleYPos()
+	local bodyAngle = self.parent.body.state.theta[0]
+	return self.parent.body.state.y[0] +
 	self.state.y[0] * math.cos(bodyAngle) +
 	self.parent.body.params.axleOffsets[self.axleIndex].x/50 * math.sin(bodyAngle) +
 	self.parent.body.params.axleOffsets[self.axleIndex].y/50 * math.cos(bodyAngle)
-	local radius = self.params.radius
+end
+
+function  axle:calcAxleRoadDistance()
+	local axleXPos = self.calcs.getAxleXPos
+	local axleYPos = self.calcs.getAxleYPos
 	local roadHeight = win.scene"roadSurface":getHeight(axleXPos)
 	local axleDistance = axleYPos - roadHeight
 	return axleDistance
 end
 	
-function axle:calcContactAngle()
+function axle:calcContactAngle_old()
 	local bodyAngle = self.parent.body.state.theta[0]
-	local axleXPos = self.parent.body.state.x[0] - 
-	self.state.y[0] * math.sin(bodyAngle) +	
-	self.parent.body.params.axleOffsets[self.axleIndex].x/50 * math.cos(bodyAngle) - 
-	self.parent.body.params.axleOffsets[self.axleIndex].y/50 * math.sin(bodyAngle)
+	local axleXPos = self.calcs.getAxleXPos
 	local radius = self.params.radius
 	local roadWheelDistance = {}
 	local roadSurface = win.scene"roadSurface"
@@ -219,6 +227,21 @@ function axle:calcContactAngle()
 	table.sort(roadWheelDistance, function (a,b) if a[2] > b[2] then return true end end)
 	local angle = math.asin(roadWheelDistance[1][1]/radius) - bodyAngle
 	if win:key_pressed("w") then print(self.axleIndex, angle) end
+	return angle
+end
+
+
+function axle:calcContactAngle()
+	local bodyAngle = self.parent.body.state.theta[0]
+	local axleXPos = self.calcs.getAxleXPos
+	local radius = self.params.radius
+	local roadWheelDistances = {}
+	local roadWheelDistanceLocations = {}
+	local roadSurface = win.scene"roadSurface"
+	local y1, y2 = roadSurface:getHeight(axleXPos-radius), roadSurface:getHeight(axleXPos+radius)
+	local touchingXVal = radius*(y1-y2)/math.sqrt(y1^2-2*y1*y2+y2^2+4*(radius^2))
+	if y1>y2 then touchingXVal = -touchingXVal end
+	local angle = math.asin(touchingXVal/radius) - bodyAngle
 	return angle
 end
 
@@ -235,8 +258,8 @@ function axle:calcSlip()
 	local referenceSpeed = wheelSurfaceSpeed - groundSpeed
 	local longitudinalSlip = math.abs(wheelSurfaceSpeed/groundSpeed - 1) * math.sign(referenceSpeed)
 	--print(longitudinalSlip)
-	if math.abs(groundSpeed) < 1e-4 then --Check if slip infinite/NaN
-		if math.abs(wheelSurfaceSpeed) < 1e-4 then --When car is stationary, slip is zero
+	if math.abs(groundSpeed) < 1e-3 then --Check if slip infinite/NaN
+		if math.abs(wheelSurfaceSpeed) < 1e-3 then --When car is stationary, slip is zero
 			longitudinalSlip = 0
 		else
 			longitudinalSlip = math.huge * math.sign(referenceSpeed) -- When ground is not moving but wheel is, slip is infinite
@@ -250,11 +273,11 @@ end
 	
 function axle:vecToGlobalCoords(vector)
 	local angle = self.parent.body.state.theta[0]
-	local v1 = matrix{vector.x, vector.y}
-	local m = matrix{{math.cos(angle), math.sin(angle)},{-math.sin(angle), math.cos(angle)}}
-	local v2 = matrix.mul(v1:transpose(),m)
-	v2 = vec2(v2[1][1], v2[1][2])
-	return v2
+	local c = math.cos(angle)
+	local s = math.sin(angle)
+	local xComponent = c*vector.x+s*vector.y
+	local yComponent = c*vector.y-s*vector.x
+	return vec2(xComponent, yComponent)
 end
 
 function axle:netForce(dimension)
@@ -352,6 +375,7 @@ function powertrainPart:netForce(dimension)
 end
 
 function powertrainPart:update()
+	self.state.theta[0] = self.state.theta[0]%(math.pi*2)
 	return nil
 end
 
