@@ -43,13 +43,15 @@ function game:start(data)
 		win.scene:append(self.menu:tag("menu"))
 	end
 	local scoreCounter = am.translate(vec2(-200,200))^am.text("")
-	profiler = newProfiler()
-			profiler:start()
+	--profiler = newProfiler()
+			--profiler:start()
 	scoreCounter:action( function (scoreCounter)
-		self.currentScore = self:updateScore(self.scoreMode, self.currentScore)
-		self.currentProgress = self:updateScore(self.endMode, self.currentProgress)
-		if not self.finished then self:measureTime() end
-		self:checkWinCondition(self.currentProgress)
+		if not self.finished then
+			self.currentScore = self:updateScore(self.scoreMode, self.currentScore)
+			self.currentProgress = self:updateScore(self.endMode, self.currentProgress)
+			self:measureTime()
+		end
+		self:checkEndCondition(self.currentProgress)
 		if win:key_pressed("t") then print(am.frame_time) end
 		local str = ""
 		for k,v in pairs(am.perf_stats()) do
@@ -94,17 +96,17 @@ function game:triggerEnd()
 	win.scene:append(endNode)
 end
 
-function game:checkWinCondition(currentScore)
-	if currentScore > self.endCondition and self.finished ~= true then
+function game:checkEndCondition(currentState)
+	if currentState > self.endCondition and self.finished ~= true then
 		self:triggerEnd()
 		self.finished = true
 	end
 end
 
 function game:kill()
-	   profiler:stop()
-	print("profiler stopped")
-    local outfile = io.open( "profile.txt", "w+" )
+	--profiler:stop()
+	--print("profiler stopped")
+    --local outfile = io.open( "profile.txt", "w+" )
     profiler:report( outfile )
     outfile:close()
 	currentGame = nil
@@ -125,11 +127,15 @@ function game:kill()
 	win.scene:remove(self.gui)
 	win.scene:remove_all()
 	self.finished = false
+	scoreData = {
+		finalScore = self.currentScore,
+		scoreThreshold = self.scoreThreshold,
+	}
 	--If there is no level structure defined, then the application will be closed at the end of the game
 	if currentLevel then
-		currentLevel:nextStage(self.scoreState)
+		currentLevel:nextStage(scoreData)
 	else
-		win:close()
+		return self.currentScore
 	end
 end
 
@@ -174,6 +180,8 @@ function game:updateScore(scoreMode, currentScore)
 		currentScore = math.max(currentScore, math.sqrt(currentGame.vehicle[1].body.state.x[0]^2+currentGame.vehicle[1].body.state.y[0]^2))
 	elseif scoreMode == "time" then
 		currentScore = currentScore + am.delta_time
+	elseif scoreMode == "x_distance" then
+		currentScore = currentGame.vehicle[1].body.state.x[0]
 	end
 	return currentScore
 end

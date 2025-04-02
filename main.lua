@@ -3,7 +3,7 @@
 UNIT_TESTS = false
 DEBUG = false
 g = 9.81
-num_steps = 8
+num_steps = 3
 
 win = am.window{
     title = "RE Challenge",

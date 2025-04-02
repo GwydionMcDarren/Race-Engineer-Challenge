@@ -26,11 +26,7 @@ function menu:close()
 		end
 	end
 	win.scene:remove(self)
-	if currentLevel then
-		currentLevel:nextStage(menuResults)
-	else
-		return menuResults
-	end
+	return menuResults
 end
 
 --Some default menus are defined to give the game structure

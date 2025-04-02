@@ -226,15 +226,6 @@ function wrappedText(str, colour, width)
 		end
 	end
 	local textNode = am.text(str, colour)
-	textNode:action( function (liveTextNode)
-		liveTextNode.text = str
-		for i,v in ipairs(currentLevel.data) do
-			if i >= firstData then
-				liveTextNode.text = string.gsub(liveTextNode.text, "##D", v, 1)
-			end
-		end
-	end
-	)
 	return textNode
 end
 

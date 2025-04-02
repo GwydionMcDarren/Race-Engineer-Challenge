@@ -11,9 +11,7 @@ sandbox = game:new{
 				componentLibrary.axles.old_wheel,
 				componentLibrary.axles.old_wheel,
 			},
-			{
-				electricMotorPowertrain:new(75e3, 200, 30, {1}, 8),
-			}
+			componentLibrary.powertrain.low_power_electric_motor
 		),
 	},
 	roadNode = roadSurface:new(createWavyRoad("x"),createWavyRoad("y")),--{0,30,1000,1500,2000,2500,3000},{0,0,100,0,0,0,0}), --
@@ -92,9 +90,7 @@ level1 = levels:new{
 				componentLibrary.axles.basic_wheel,
 				componentLibrary.axles.basic_wheel,
 			},
-			{
-				electricMotorPowertrain:new(75e3*4, 200, 30, {1}, 30),
-			}
+			componentLibrary.powertrain.Z14XEP
 		),
 	},
 	roadNode = roadSurface:new(createWavyRoad("x"),createWavyRoad("y",200)),
@@ -111,7 +107,7 @@ level1 = levels:new{
 		valueIsAbs = true,
 		location = vec2(0,-150),
 	},
-	endCondition = 30,
+	endCondition = math.huge,
 	scoreMode = "maxSpeed",
 	},
 	[3] = menu:new{
@@ -175,9 +171,7 @@ level2 = levels:new{
 				componentLibrary.axles.basic_wheel,
 				componentLibrary.axles.basic_wheel,
 			},
-			{
-				componentLibrary.powertrain.high_power_electric_motor,
-			}
+				componentLibrary.powertrain.high_power_electric_motor
 		),
 	},
 	roadNode = roadSurface:new(createWavyRoad("x",0,0,1e4),createWavyRoad("y",3,30)),
@@ -194,7 +188,7 @@ level2 = levels:new{
 		valueIsAbs = true,
 		location = vec2(0,-150),
 	},
-	endCondition = 1e4,
+	endCondition = 1e2,
 	},
 	[3] = menu:new{
 		am.rect(-400,-300,400,300,vec4(0,0.5,0.5,1)),
@@ -212,75 +206,34 @@ level2 = levels:new{
 	}
 }
 
-level3 = levels:new{
-	name = "Level 3",
-	[1] = menu:new{
-		am.rect(-400,-300,400,300,vec4(0.3,0.3,0.3,1)),
-		am.translate(vec2(0,200))^am.text("Pass score: 700",vec4(1,1,1,1)),
-		newSlider{
-			position=vec2(-150,0),
-			length=200,
-			label="Gear Ratio",
-			knobColour = vec4(1,0,0,1),
-			knobSize=20,
-			valueLimits = {0.01,7},
-			defaultValue = 2.35,
+level3 = levels:createNormalLevel{
+	introText="test level. This is the long introduction text.",
+	shortIntroText="short summary of the level",
+	adjustments={
+		{
+			adjustmentType="motor_driveRatio",
+			default=8,
+			low=3,
+			high=20,
 		},
-		newButton{
-			size=vec2(150,50),
-			position=vec2(-75,-200),
-			colour=vec4(0,0.9,0.4,1),
-			label="Continue",
-			labelColour=vec4(1,1,1,1),
-			clickFunction = 
-				function()
-					d, _ = level3[1]:close()
-				end
+	},
+	car={
+		body="sedan",
+		axles={
+			"basic_wheel",
+			"basic_wheel",
 		},
-	},	
-	[2] = game:new{
-	vehicle = {
-		car:new(
-			componentLibrary.bodies.lorry,
-			{
-				componentLibrary.axles.lorry_front_wheel,
-				componentLibrary.axles.lorry_rear_wheel,
-				componentLibrary.axles.lorry_rear_wheel,
-			},
-			{
-				electricMotorPowertrain:new(300e3, 1e3, 30, {2,3}, 20),
-			}
-		),
+		powertrain="low_power_electric_motor",
 	},
-	roadNode = roadSurface:new(createWavyRoad("x"),createWavyRoad("y",0,0)),
-	backdrop = {
-		sprite = backgroundHillSprite,
-		movement = 5,
-		offset = vec2(0,0)
+	roadSurface={
+		x = {0,1000},
+		y = {0,0},
 	},
-	gui = gui:newElement{
-		trackingVariable = "front_axle_speed",
-		unit_scaling = 0.46*2.25,
-		max = 90,
-		min = 0,
-		valueIsAbs = true,
-		location = vec2(0,-150),
-	},
-	endCondition = 600,
-	},
-	[3] = menu:new{
-		am.rect(-400,-300,400,300,vec4(0,0.5,0.5,1)),
-		am.translate(vec2(0,200))^liveText("You ##D the level",vec4(1,1,1,1),1),
-		newButton{
-			size=vec2(150,50),
-			position=vec2(-75,-25),
-			colour=vec4(0,0.9,0.4,1),
-			label="Continue",
-			labelColour=vec4(1,1,1,1),
-			clickFunction = 
-				function() 
-					level3[3]:close()
-				end},
-	}
+	scoreMode="maxSpeed",
+	scoreThreshold=20,
+	scoreTest=nil,
+	endMode="time",
+	endCondition=120,
 }
+
 end

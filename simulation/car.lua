@@ -130,6 +130,10 @@ function car:applyConstraints(component,forceIn,dimension,forceTable,massMatrixT
 					end
 					massMatrixTable[powertrainComponentIndex][powertrainComponentIndex] = -1
 					massMatrixTable[powertrainComponentIndex][axleDimensionIndex] = outputConstraint.ratio
+					forceTable[powertrainComponentIndex][1] = 0
+					massMatrixTable[powertrainComponentIndex-1][powertrainComponentIndex-1] = -1
+					massMatrixTable[powertrainComponentIndex-1][axleDimensionIndex-1] = outputConstraint.ratio
+					forceTable[powertrainComponentIndex-1][1] = 0
 					--print(axle.axleIndex, outputTorque, effectiveInertia)
 				end
 				forceTable[powertrainComponentIndex] = {0,0}
@@ -278,6 +282,7 @@ function car:createNode(adjustments)
 				print(component.state[dimension][1])
 			end
 		end
+		if win:key_pressed("1") then self.body.state.x[1] = 30 end
 		currentGame:updateCamera(self)
 		self:updateControls()
 		bodySprite"translate".position2d = vec2(bodySprite.parent.body.state.x[0],bodySprite.parent.body.state.y[0])*50
@@ -311,6 +316,65 @@ function car:createTelemetry(variablesTable)
 	return --need function that actually collects each value every few frames
 end
 
+adjustmentTypes = {
+	"body_Mass",
+	"body_rInertia",
+	"body_dragCoefficient",
+	"axle_radius",
+	"frontAxle_radius",
+	"rearAxle_radius",
+	"axle_springRate",
+	"frontAxle_springRate",
+	"rearAxle_springRate",
+	"axle_dampingRate",
+	"frontAxle_dampingRate",
+	"rearAxle_dampingRate",
+	"axle_maxBrakeTorque",
+	"frontAxle_maxBrakeTorque",
+	"rearAxle_maxBrakeTorque",
+	"axle_tyreStiffness",
+	"frontAxle_tyreStiffness",
+	"rearAxle_tyreStiffness",
+	"axle_peakFriction",
+	"frontAxle_peakFriction",
+	"rearAxle_peakFriction",
+	"axle_maxSlipFriction",
+	"frontAxle_maxSlipFriction",
+	"rearAxle_maxSlipFriction",
+	"motor_maxTorque",
+	"motor_maxPower",
+	"motor_driveRatio",
+}
+
+adjustmentNames = {
+	body_Mass = "Body Mass (kg)",
+	body_rInertia = "Body Rotational Inertia (kg/m^2)",
+	body_dragCoefficient = "Drag Coefficient (Ns^2/m^2",
+	axle_radius = "Wheel Radius (m)",
+	frontAxle_radius = "Front Wheel Radius (m)",
+	rearAxle_radius = "Rear Wheel Radius (m)",
+	axle_springRate = "Suspension Spring Stiffness (N/m)",
+	frontAxle_springRate = "Front Suspension Spring Stiffness (N/m)",
+	rearAxle_springRate = "Rear Suspension Spring Stiffness (N/m)",
+	axle_dampingRate = "Suspension Damping Rate (Ns/m)",
+	frontAxle_dampingRate = "Front Suspension Damping Rate (Ns/m)",
+	rearAxle_dampingRate = "Rear Suspension Damping Rate (Ns/m)",
+	axle_maxBrakeTorque = "Maximum Axle Brake Torque (Nm)",
+	frontAxle_maxBrakeTorque = "Front Maximum Axle Brake Torque (Nm)",
+	rearAxle_maxBrakeTorque = "Rear Maximum Axle Brake Torque (Nm)",
+	axle_tyreStiffness = "Tyre Stiffness (N/m)",
+	frontAxle_tyreStiffness = "Front Tyre Stiffness (N/m)",
+	rearAxle_tyreStiffness = "Rear Tyre Stiffness (N/m)",
+	axle_peakFriction = "",
+	frontAxle_peakFriction = "",
+	rearAxle_peakFriction = "",
+	axle_maxSlipFriction = "",
+	frontAxle_maxSlipFriction = "",
+	rearAxle_maxSlipFriction = "",
+	motor_maxTorque = "Peak Electric Motor Torque (Nm)",
+	motor_maxPower = "Peak Electric Motor Power (kW)",
+	motor_driveRatio = "Final Drive Ratio",
+}
 function car:applyAdjustments(adjustmentList)
 	local adjustmentList = adjustmentList or {}
 	self.body.inertia.x = adjustmentList.body_Mass or self.body.inertia.x
@@ -343,11 +407,14 @@ function car:applyAdjustments(adjustmentList)
 	rearAxle.params.peakFriction = adjustmentList.rearAxle_peakFriction or rearAxle.params.peakFriction
 	rearAxle.params.maxSlipFriction = adjustmentList.rearAxle_maxSlipFriction or rearAxle.params.maxSlipFriction
 	local electricMotor = false
-	local icEngine = false
+	local combustionEngine = false
 	local manualGearbox = false
 	for index, powertrainComponent in self:iterateOverPowertrain() do
 		if powertrainComponent.componentSubType == "electricMotor" then
 			electricMotor = powertrainComponent
+		end
+		if powertrainComponent.componentSubType == "combustionEngine" then
+			combustionEngine = powertrainComponent
 		end
 	end
 	if electricMotor then

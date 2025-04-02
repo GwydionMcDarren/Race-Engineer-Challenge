@@ -213,35 +213,15 @@ function  axle:calcAxleRoadDistance()
 	local axleDistance = axleYPos - roadHeight
 	return axleDistance
 end
-	
-function axle:calcContactAngle_old()
-	local bodyAngle = self.parent.body.state.theta[0]
-	local axleXPos = self.calcs.getAxleXPos
-	local radius = self.params.radius
-	local roadWheelDistance = {}
-	local roadSurface = win.scene"roadSurface"
-	for i=-radius,radius,radius/5 do
-		local wheelHeight = math.sqrt(radius^2-i^2)
-		table.insert(roadWheelDistance,{i,roadSurface:getHeight(axleXPos+i)+wheelHeight})
-	end
-	table.sort(roadWheelDistance, function (a,b) if a[2] > b[2] then return true end end)
-	local angle = math.asin(roadWheelDistance[1][1]/radius) - bodyAngle
-	if win:key_pressed("w") then print(self.axleIndex, angle) end
-	return angle
-end
-
 
 function axle:calcContactAngle()
 	local bodyAngle = self.parent.body.state.theta[0]
 	local axleXPos = self.calcs.getAxleXPos
 	local radius = self.params.radius
-	local roadWheelDistances = {}
-	local roadWheelDistanceLocations = {}
 	local roadSurface = win.scene"roadSurface"
 	local y1, y2 = roadSurface:getHeight(axleXPos-radius), roadSurface:getHeight(axleXPos+radius)
 	local touchingXVal = radius*(y1-y2)/math.sqrt(y1^2-2*y1*y2+y2^2+4*(radius^2))
-	if y1>y2 then touchingXVal = -touchingXVal end
-	local angle = math.asin(touchingXVal/radius) - bodyAngle
+	local angle = -math.asin(touchingXVal/radius) + bodyAngle
 	return angle
 end
 
