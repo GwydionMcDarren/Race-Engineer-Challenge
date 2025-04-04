@@ -54,10 +54,11 @@ function game:start(data)
 		self:checkEndCondition(self.currentProgress)
 		if win:key_pressed("t") then print(am.frame_time) end
 		local str = ""
-		for k,v in pairs(am.perf_stats()) do
-			str = str..k.." "..v.."\n"
-		end
-		str = str.."Score: "..self.currentScore
+		--for k,v in pairs(am.perf_stats()) do
+		--	str = str..k.." "..v.."\n"
+		--end
+		str = str.."Score: "..string.format("%.2f",100*self.currentScore/self.scoreThreshold).."%\n"
+		str = str.."Progress: "..string.format("%.2f",100*self.currentProgress/self.endCondition).."%"
 		scoreCounter"text".text = str
 		end
 	)
@@ -107,9 +108,21 @@ function game:kill()
 	--profiler:stop()
 	--print("profiler stopped")
     --local outfile = io.open( "profile.txt", "w+" )
-    profiler:report( outfile )
-    outfile:close()
-	currentGame = nil
+    --profiler:report( outfile )
+    --outfile:close()
+	if TELEMETRY then
+		telemOutput = io.open("telemetryData.csv","w")
+		for i,v in ipairs(self.vehicle[1].telem) do
+			for j,w in ipairs(v) do
+				telemOutput:write(w)
+				if v[j+1] then
+					telemOutput:write(",")
+				end
+			end
+			telemOutput:write("\n")
+		end
+		telemOutput:close()
+	end
 	win.scene:remove("mobileScene")
 	win.scene:remove("gameMonitor")
 	win.scene:remove("menu")
@@ -127,15 +140,19 @@ function game:kill()
 	win.scene:remove(self.gui)
 	win.scene:remove_all()
 	self.finished = false
+	currentGame = nil
 	scoreData = {
 		finalScore = self.currentScore,
 		scoreThreshold = self.scoreThreshold,
+		scoreTest = self.scoreTest,
 	}
+	local finalScore = self.currentScore
+	self = nil
 	--If there is no level structure defined, then the application will be closed at the end of the game
 	if currentLevel then
 		currentLevel:nextStage(scoreData)
 	else
-		return self.currentScore
+		return finalScore
 	end
 end
 
@@ -178,6 +195,10 @@ function game:updateScore(scoreMode, currentScore)
 		currentScore = math.max(currentScore, math.sqrt(currentGame.vehicle[1].body.state.x[1]^2+currentGame.vehicle[1].body.state.y[1]^2))
 	elseif scoreMode == "maxDistance" then
 		currentScore = math.max(currentScore, math.sqrt(currentGame.vehicle[1].body.state.x[0]^2+currentGame.vehicle[1].body.state.y[0]^2))
+	elseif scoreMode == "maxSuspensionTravel" then
+		for index,axle in currentGame.vehicle[1]:iterateOverAxles() do
+			currentScore = math.max(currentScore, math.abs(axle.state.y[0]))
+		end
 	elseif scoreMode == "time" then
 		currentScore = currentScore + am.delta_time
 	elseif scoreMode == "x_distance" then

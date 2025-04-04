@@ -40,9 +40,9 @@ newButton{size=vec2(150,50),position=vec2(-75,-75),colour=vec4(0,0.4,0.9,1),labe
 
 levelSelect = menu:new{
 	newButton{position=vec2(-300,200),colour=vec4(1,0,0,1),label="Main menu",labelColour=vec4(1,1,1,1), clickFunction = function() levelSelect:close() mainMenu:initialise() end},
-	newButton{position=vec2(-100,0),size=vec2(80,80),colour=vec4(0.2,0.5,0.5,1),label="Level 1",labelColour=vec4(1,1,1,1), clickFunction = function() levelSelect:close() level1:startLevel() end},
-	newButton{position=vec2(-0,0),size=vec2(80,80),colour=vec4(0.2,0.5,0.5,1),label="Level 2",labelColour=vec4(1,1,1,1), clickFunction = function() levelSelect:close() level2:startLevel() end},
-	newButton{position=vec2(100,0),size=vec2(80,80),colour=vec4(0.2,0.5,0.5,1),label="Level 3",labelColour=vec4(1,1,1,1), clickFunction = function() levelSelect:close() level3:startLevel() end},
+	newButton{position=vec2(-175,0),size=vec2(150,80),colour=vec4(0.2,0.5,0.5,1),label="Gear Tuning",labelColour=vec4(1,1,1,1), clickFunction = function() levelSelect:close() storedLevels[2]:startLevel() end},
+	newButton{position=vec2(25,0),size=vec2(150,80),colour=vec4(0.2,0.5,0.5,1),label="Suspension\nTuning",labelColour=vec4(1,1,1,1), clickFunction = function() levelSelect:close() storedLevels[3]:startLevel() end},
+	newButton{position=vec2(-75,-200),size=vec2(150,80),colour=vec4(0.2,0.5,0.5,1),label="Validation\nLevel",labelColour=vec4(1,1,1,1), clickFunction = function() levelSelect:close() storedLevels[4]:startLevel() end},
 }
 _ = {
 newSlider{position=vec2(-300,100),label="Test slider",knobColour = vec4(1,0,0,1),knobSize=8},

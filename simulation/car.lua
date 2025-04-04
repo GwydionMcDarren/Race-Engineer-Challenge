@@ -2,6 +2,7 @@ require 'simulation.component'
 require 'simulation.carSolver3'
 require '3rd_party.profiler'
 
+
 car = {}
 car.__index = car
 
@@ -116,6 +117,39 @@ function car:applyConstraints(component,forceIn,dimension,forceTable,massMatrixT
 	--Iterate over powertrain members to do something
 	for index,powertrainComponent in self:iterateOverPowertrain() do
 		local powertrainComponentIndex = powertrainComponent.firstDimensionIndex * 2
+		if powertrainComponent.constraints.input then
+			local inputConstraint = powertrainComponent.constraints.input
+			assert(#inputConstraint.powertrainComponent == 1)
+			local inputComponent = self.powertrain[inputConstraint.inputPart.powertrainComponent[1]]
+			local inputComponentIndex = inputComponent.firstDimensionIndex * 2
+			if inputConstraint.type == "stick-slip" then
+				if not inputConstraint.state then inputConstraint.state = "slip" end
+				if inputComponent.state.theta[1] - powertrainComponent.state.theta[1] < 1e-3 then
+					inputConstraint.state = "stick"
+				end
+				local inputTorque = forceTable[inputComponentIndex][1] * inputConstraint.ratio
+				if inputTorque > powertrainComponent.calcs.getStickTorque then
+					inputConstraint.state = "slip"
+				end
+				if inputConstraint.state == "stick" then
+					forceTable[powertrainComponentIndex][1] = forceTable[powertrainComponentIndex][1] + inputTorque
+					for i=1,#massMatrixTable do
+						massMatrixTable[powertrainComponentIndex][i] = massMatrixTable[powertrainComponentIndex][i] + massMatrixTable[inputComponentIndex][i]/(inputConstraint.ratio^2)
+						massMatrixTable[inputComponentIndex][i] = 0
+					end
+					massMatrixTable[inputComponentIndex][inputComponentIndex] = -1
+					massMatrixTable[inputComponentIndex][powertrainComponentIndex] = inputConstraint.ratio
+					forceTable[inputComponentIndex][1] = 0
+					massMatrixTable[inputComponentIndex-1][inputComponentIndex-1] = -1
+					massMatrixTable[inputComponentIndex-1][powertrainComponentIndex-1] = inputConstraint.ratio
+					forceTable[inputComponentIndex-1][1] = 0
+					forceTable[inputComponentIndex] = {0,0}
+				else
+					forceTable[powertrainComponentIndex][1] = forceTable[powertrainComponentIndex][1] + powertrainComponent.calcs.getSlipTorque
+					forceTable[inputComponentIndex][1] = forceTable[inputComponentIndex][1] - powertrainComponent.calcs.getSlipTorque
+				end
+			end
+		end
 		if powertrainComponent.constraints.output then
 			local outputConstraint = powertrainComponent.constraints.output
 			if outputConstraint.type == "fixed-axle" then
@@ -179,6 +213,7 @@ function car:new(body,axles,powertrain, isPlayer, adjustments)
 	newCar.axles = {}
 	newCar.powertrain = {}
 	for i,v in ipairs(axles) do
+		print("--AXLES--",i,v)
 		newCar.axles[i] = axles[i]:newInstance()
 		newCar.axles[i].dimensionIndices = {}
 	end
@@ -256,21 +291,39 @@ function car:createNode(adjustments)
 	local carParts = am.group()
 	local carNode = am.group(am.translate(vec2(0,0))^am.rotate(0)^carParts,am.text(""))
 	carParts:append(self.body.node)
+	print("-- Num axles --",#self.axles)
 	for index,axles in pairs(self.axles) do
-		print(index,axles,axleIndex)
+		print(index,axles,axles.name)
 		carParts:append(self.body.axleOffsetNodes[index]^self.axles[index].node)
 	end
 	self:applyAdjustments(adjustments)
 	self.body.state.x[0] = 0
 	self.body.state.x[1] = 0
-	self.body.state.y[0] = currentGame.mobileScene"roadSurface":getHeight(self.body.state.x[0])+(-self.body.params.axleOffsets[1].y/50)+0.2
+	self.body.state.y[0] = currentGame.mobileScene"roadSurface":getHeight(self.body.state.x[0])+(-self.body.params.axleOffsets[1].y/50)
 	carNode.parent = self
+	if TELEMETRY then
+		self.telem = {{"time"}}
+		for index,component,dimension in self:iterateOverDoF() do
+			table.insert(self.telem[1], component.componentType.." "..dimension)
+			table.insert(self.telem[1], component.componentType.." d"..dimension)
+		end
+		self.telemTime = 0
+	end
 	carNode:action( function (bodySprite)
 		if not win:key_down("space") then
 		ts = 1/(60*num_steps)
 		timestep = 0
 		while timestep <= am.delta_time do
 			timestep = timestep + self:solver(ts)
+		end
+		if TELEMETRY then
+			self.telemTime = self.telemTime + timestep
+			local telemData = {self.telemTime}
+			for index,component,dimension in self:iterateOverDoF() do
+				table.insert(telemData, component.state[dimension][0])
+				table.insert(telemData, component.state[dimension][1])
+			end
+			table.insert(self.telem, telemData)
 		end
 		for index,component in self:iterateOverComponents() do
 			component:update()

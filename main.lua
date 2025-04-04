@@ -2,6 +2,7 @@
 
 UNIT_TESTS = false
 DEBUG = false
+TELEMETRY = false
 g = 9.81
 num_steps = 3
 
@@ -51,44 +52,6 @@ require 'simulation.tyreForce'
 require 'simulation.car'
 require 'simulation.component_library'
 require 'GUI.level_definitions'
-function createWavyRoad(xOrY,a,b,length)
-	local output = {}
-	local a = a or 1
-	local b = b or 1
-	local length = length or 2000
-	if xOrY == "x" then 
-		for i=1,2000,0.5 do
-			table.insert(output, i)
-		end
-		output[#output] = length
-	else
-		for i=1,2000,0.5 do
-			if i<100 or i>400 then
-				table.insert(output,a)
-			elseif i>200 and i<300 then
-				table.insert(output,0)
-			elseif i<=200 then
-				local c = (i-100)/(200-100)
-				y1 = (1-c)^3
-				y2 = 3*(1-c)^2*c
-				y3 = 0*3*(1-c)*(c^2)
-				y4 = 0*c^3
-				y = a*(y1+y2+y3+y4)
-			table.insert(output, y)--0.4*math.sin(i/(15*math.pi))+1)
-			else
-				local c = (i-300)/(400-300)
-				y1 = 0*(1-c)^3
-				y2 = 0*3*(1-c)^2*c
-				y3 = 3*(1-c)*(c^2)
-				y4 = c^3
-				y = a*(y1+y2+y3+y4)
-			table.insert(output, y)--0.4*math.sin(i/(15*math.pi))+1)
-			end
-		end
-	end
-	return output
-end
-
 
 mainMenu:initialise()
 defineLevels()

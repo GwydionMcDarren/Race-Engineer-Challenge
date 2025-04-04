@@ -43,7 +43,7 @@ end
 
 combustionEngine = {}
 
-function combustionEngine:new(speedValues, torqueValues, rInertia, driveRatio, gearboxPart)
+function combustionEngine:new(speedValues, torqueValues, rInertia, driveRatio)
 	local newCombustionEngine = component:new{
 		dimensions = {"theta"},
 		componentType = "powertrain",
@@ -111,7 +111,6 @@ manualGearbox = component:new{
 	componentType = "powertrainPart",
 	componentSubType = "manualGearbox",
 }
-manualGearbox.__index = manualGearbox
 manualGearbox.constraints = {
 	input = {
 		type = "stick-slip",
@@ -120,47 +119,54 @@ manualGearbox.constraints = {
 	}
 }
 
-function manualGearbox:new(g)
+function manualGearbox:new(g)--ratios, ratioNames, rInertia, inputDevice, outputAxles)
 	local g = g or {}
-	local newManualGearbox = {}
-	newManualGearbox.name = g.name or "Unnamed manual gearbox"
-	newManualGearbox.inertia = {theta = g.rInertia or 5}
-	newManualGearbox.params = {
-		ratios = g.ratios or {-3, 0, 2, 1.5, 1.2, 0.8, 0.5},
-		defaultGear = g.defaultGear or 2,
-		ratioNames = g.ratioNames or {"R", "N", "1", "2", "3", "4", "5"},
-		clutchFrictionCoefficient = {
-			slip = (g.clutchSlipFriction or 0.8), 
-			stick = (g.clutchStickFriction or 0.9)
+	local newManualGearbox = component:new{
+		name = g.name or "Unnamed manual gearbox",
+		inertia = {theta = g.rInertia or 1},
+		params = {
+			ratios = g.ratios or {-3, 0, 2, 1.5, 1.2, 0.8, 0.5},
+			finalDrive = g.finalDrive or 1,
+			defaultGear = g.defaultGear or 2,
+			ratioNames = g.ratioNames or {"R", "N", "1", "2", "3", "4", "5"},
+			clutchFrictionCoefficient = {
+				slip = (g.clutchSlipFriction or 0.8), 
+				stick = (g.clutchStickFriction or 0.9)
+			},
+			maxClutchPressure = g.maxClutchPressure or 100,
 		},
-		maxClutchPressure = g.maxClutchPressure or 100,
+		constraints = {
+			input = {
+				type = "stick-slip",
+				ratio = 1,
+				powertrainComponent = g.enginePart or {1}
+			},
+			output = {
+				type = "fixed-axle",
+				ratio = 0,
+				axles = g.drivenAxles or {1}
+			}
+		},
+		clutch = 0
 	}
+	manualGearbox.__index = manualGearbox
 	setmetatable(newManualGearbox, self)
-	newManualGearbox.constraints.output = {type = "fixed-axle", axles = g.outputAxles or {2}}
 	return newManualGearbox
 end
 
 function manualGearbox:calcClutchTorque()
-	local input = self.constraints.input.inputObject
-	local gearRatio = self.params.ratios[self.currentGear]
-	local clutchTorque = 0
-	if input.state.theta[1]*gearRatio == self.state.theta[1] then
-		self.constraints.input.state = "stick"
-	end
-	if self.constraints.input.state == "slip" then
-		clutchTorque = self.calcs.getClutchPressure * self.params.clutchFrictionCoefficient.slip * -math.sign(input.state.theta[1] - self.state.theta[1])
-	end
+	return {0,0}
 end	
 
 function manualGearbox:calcClutchPressure()
-	return (1 - self.parent.controls.clutch) * self.params.maxClutchPressure
+	return (1 - self.clutch) * self.params.maxClutchPressure
 end
 
-function manualGearbox:calcClutchSlipTorque()
+function manualGearbox:calcSlipTorque()
 	return self.calcs.getClutchPressure * self.params.clutchFrictionCoefficient.slip
 end
 
-function manualGearbox:calcClutchStickTorque()
+function manualGearbox:calcStickTorque()
 	return self.calcs.getClutchPressure * self.params.clutchFrictionCoefficient.stick
 end
 
@@ -171,12 +177,12 @@ end
 function manualGearbox:recalc()
 	self.calcs = {}
 	self.calcs.getClutchPressure = self:calcClutchPressure()
-	self.calcs.getClutchSlipTorque = self:calcClutchSlipTorque()
-	self.calcs.getClutchStickTorque = self:calcClutchStickTorque()
+	self.calcs.getSlipTorque = self:calcClutchSlipTorque()
+	self.calcs.getStickTorque = self:calcClutchStickTorque()
 end
 
 function manualGearbox:netForce()
-	return {self.calcs.getClutchSlipTorque, 0}
+	return {0, 0}
 end
 
 function manualGearbox:update()
@@ -186,10 +192,18 @@ function manualGearbox:update()
 	if self.parent.controls.gear_up then
 		if self.gear < #self.params.ratios then
 			self.gear = self.gear + 1
+			self.clutch = 0
 		end
 	elseif self.parent.controls.gear_down then
 		if self.gear > 1 then
 			self.gear = self.gear - 1
+			self.clutch = 0
 		end
 	end
+	if self.params.ratio[self.gear] == 0 then
+		self.clutch = 0
+	else
+		self.clutch = math.min(self.parent.controls.clutch, math.min(self.clutch + 1/60, 1))
+	end	
+	self.constraints.output.ratio = self.params.ratio[self.gear]*self.params.finalDrive
 end

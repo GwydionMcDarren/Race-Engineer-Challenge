@@ -52,6 +52,17 @@ componentLibrary.bodies = {
 		},
 		sprite = "graphics/lorry.png",
 	},
+	unitMass = body:new{
+		name = "Unit Mass Test Body",
+		mass = 1, --kg
+		rInertia = 1, --kg m^2
+		axles = 1,
+		dragCoefficient = 0,
+		axleOffsets = {
+			vec2(0, 0),
+		},
+		sprite = "graphics/wheel-marker.png",
+	},
 }
 
 componentLibrary.axles = {
@@ -103,6 +114,17 @@ componentLibrary.axles = {
 		tyreStiffness = 5e6,
 		sprite = "graphics/lorry_wheel_rear.png",
 	},
+	unitMass_wheel = axle:new{
+		name = "Unit Wheel",
+		mass = 1,
+		rInertia = 1,
+		radius = 0.32,
+		springRate = 1,
+		dampingRate = 0,
+		maxBrakeTorque = 1,
+		tyreStiffness = 100,
+		sprite = "graphics/wheel-simple.png",
+	},
 }
 
 componentLibrary.powertrain = {
@@ -114,7 +136,15 @@ componentLibrary.powertrain = {
 			{58.8, 66.8, 73.5, 79.2, 84, 88.2, 91.9, 95.2, 98, 100.6, 102.9, 105, 107, 108.7, 110.3, 111.8, 113.1, 114.4, 115.5, 116.6, 117.6, 118.6, 119.5, 120.3, 121.1, 121.8, 122.5, 123.2, 123.8, 124.4, 125, 125, 124.8, 124.6, 124.2, 123.8, 123.2, 122.6, 121.9, 121.1, 120.1, 119.1, 118, 116.8, 115.5, 114.1, 112.5, 110.1, 106.9, 103, 98.3, 93},
 			2,
 			1),
+		manualGearbox:new{
+			ratios = {-3.308,0,3.727,2.136,1.414,1.121,0.892},
+			ratioNames = {"R","N","1","2","3","4","5"},
+			defaultGear = 2,
+			finalDrive = 3.74,
+			drivenAxles = {1},
+			enginePart = {1},
 		}
 	}
+}
 
 return componentLibrary

@@ -1,6 +1,6 @@
 function tyreForce(axle,body,normalForce)
 	local longitudinalSlip = axle.calcs.getSlip
-	local peakSlip = 0.15
+	local peakSlip = 0.015
 	local slipDirection = math.sign(longitudinalSlip)
 	local longitudinalSlip = math.abs(longitudinalSlip)
 	--Positive slip means force acts forward on axle, negative slip means force acts backwards on axle

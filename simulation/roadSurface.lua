@@ -68,4 +68,67 @@ function roadSurface:getHeight(x)
 	return linearInterpolate(lowX,highX,lowY,highY,x)
 end
 
+function createWavyRoad(a,b,length)
+	local outputX, outputY = {}, {}
+	local a = a or 1
+	local b = b or 1
+	local length = length or 2000
+	for i=1,2000,0.5 do
+		table.insert(outputX, i)
+	end
+	outputX[#outputX] = length
+	for i=1,2000,0.5 do
+		if i<100 or i>400 then
+			table.insert(outputY,a)
+		elseif i>200 and i<300 then
+			table.insert(outputY,0)
+		elseif i<=200 then
+			local c = (i-100)/(200-100)
+			y1 = (1-c)^3
+			y2 = 3*(1-c)^2*c
+			y3 = 0*3*(1-c)*(c^2)
+			y4 = 0*c^3
+			y = a*(y1+y2+y3+y4)
+			table.insert(outputY, y)--0.4*math.sin(i/(15*math.pi))+1)
+		else
+			local c = (i-300)/(400-300)
+			y1 = 0*(1-c)^3
+			y2 = 0*3*(1-c)^2*c
+			y3 = 3*(1-c)*(c^2)
+			y4 = c^3
+			y = a*(y1+y2+y3+y4)
+			table.insert(outputY, y)--0.4*math.sin(i/(15*math.pi))+1)
+		end
+	end
+	return {outputX, outputY}
+end
+
+function createSinusoidalRoad(period,amplitude,length)
+	local outputX, outputY = {}, {}
+	local period = period or 1
+	local amplitude = amplitude or 0.1
+	local length = length or 1000
+	for i=1,length,period/10 do
+		table.insert(outputX, i)
+		table.insert(outputY, amplitude*math.sin(i*2*math.pi/period))
+	end
+	return {outputX, outputY}
+end
+function uphillRoad(height,length)
+	local X, Y = {}, {}
+	local height = height or 20
+	local length = length or 2000
+	for i=1,length,1 do
+		table.insert(X, i)
+		local c = i/length
+		y1 = 0*(1-c)^3
+		y2 = 0*3*(1-c)^2*c
+		y3 = 3*(1-c)*(c^2)
+		y4 = c^3
+		y = height*(y1+y2+y3+y4)
+		table.insert(Y, y)
+	end
+	return {X, Y}
+end
+
 return roadSurface

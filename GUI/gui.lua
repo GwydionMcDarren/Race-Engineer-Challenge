@@ -34,6 +34,8 @@ end
 function gui:getTrackingValue()
 	if self.trackingVariable == "front_axle_speed" then
 		return currentGame.vehicle[1].axles[1].state.theta[1]
+	elseif self.trackingVariable == "front_axle_speed_ground_speed" then
+		return currentGame.vehicle[1].axles[1].state.theta[1]*currentGame.vehicle[1].axles[1].params.radius
 	elseif self.trackingVariable == "body_speed" then
 		return math.sqrt(currentGame.vehicle[1].body.state.x[1]^2+currentGame.vehicle[1].body.state.y[1]^2)
 	end

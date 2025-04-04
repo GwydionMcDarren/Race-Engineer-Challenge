@@ -65,6 +65,33 @@ function closeMenuAndContinue()
 	currentLevel:nextStage(data)
 end
 
+function closeMenuAndQuit()
+	data = win.scene"menu":close()
+	mainMenu:initialise()
+	currentLevel = nil
+	defineLevels()
+end
+
+function levels:restart()
+	data = win.scene"menu":close()
+	currentLevel = nil
+	defineLevels()
+	storedLevels[self.name]:startLevel()
+end
+
+function levels:nextLevel()
+	data = win.scene"menu":close()
+	local nextLevel = self.nextLevelName
+	currentLevel = nil
+	defineLevels()
+	if storedLevels[nextLevel] then
+		storedLevels[nextLevel]:startLevel()
+	else
+		error("No level defined for "..nextLevel)
+	end
+end
+	
+
 function levels:createNormalLevel(levelData)
 	--levelData fields:
 		--introText: string, Introducing player to what the problem is in the level.
@@ -87,20 +114,31 @@ function levels:createNormalLevel(levelData)
 	local levelData = levelData or {}
 	local levelTable = {}
 	levelTable.name = levelData.name or "Unnamed level"
+	levelTable.nextLevelName = levelData.nextLevel
 	levelTable.passFail = function(self, stage, data)
 		local data = data or {}
 		local decisionIndex = 1
 		if stage == 3 then
 			print(data.finalScore, "Final score")
 			print(data.scoreThreshold, "Score threshold")
-			if data.finalScore < data.scoreThreshold then
-				decisionIndex = 2
-			end
+			if not data.scoreTest then
+				if data.finalScore < data.scoreThreshold then
+					decisionIndex = 2
+				end
+			elseif data.scoreTest == "lessThan" then
+				if data.finalScore > data.scoreThreshold then
+					decisionIndex = 2
+				end
+			elseif data.scoreTest == "equalTo" then
+				if data.finalScore ~= data.scoreThreshold then
+					decisionIndex = 2
+				end
+			end				
 		end
 		return decisionIndex
 	end
 	levelTable[1] = menu:new{
-		am.translate(vec2(0,200))^wrappedText(levelData.introText or "<Missing introText>",vec4(1,1,1,1),600),
+		am.translate(vec2(0,200))^wrappedText(levelData.introText or "<Missing introText>",vec4(1,1,1,1),60),
 		newButton{
 		size=vec2(150,50),
 		position=vec2(-75,-200),
@@ -114,7 +152,7 @@ function levels:createNormalLevel(levelData)
 		}
 	}
 	part2MenuTable = {
-		am.translate(vec2(0,200))^wrappedText(levelData.shortIntroText or "<Missing shortIntroText>",vec4(1,1,1,1),600),
+		am.translate(vec2(0,200))^wrappedText(levelData.shortIntroText or "<Missing shortIntroText>",vec4(1,1,1,1),60),
 		newButton{
 			size=vec2(150,50),
 			position=vec2(-75,-200),
@@ -131,7 +169,7 @@ function levels:createNormalLevel(levelData)
 		for i,v in ipairs(levelData.adjustments) do
 			table.insert(part2MenuTable, 
 			newSlider{
-				position=vec2(-150,100-50*i),
+				position=vec2(-300,100-50*i),
 				length=200,
 				label=adjustmentNames[v.adjustmentType],
 				name=v.adjustmentType,
@@ -149,8 +187,8 @@ function levels:createNormalLevel(levelData)
 		car:new(
 			componentLibrary.bodies[levelData.car.body or "hatchback"],
 			{
-				componentLibrary.axles[levelData.car.axle or "basic_wheel"],
-				componentLibrary.axles[levelData.car.axle or "basic_wheel"],
+				componentLibrary.axles[levelData.car.axles or "basic_wheel"],
+				componentLibrary.axles[levelData.car.axles or "basic_wheel"],
 			},
 			componentLibrary.powertrain[levelData.car.powertrain or "low_power_electric_motor"]
 		),
@@ -162,8 +200,8 @@ function levels:createNormalLevel(levelData)
 		offset = vec2(0,0)
 	},
 	gui = gui:newElement{
-		trackingVariable = "front_axle_speed",
-		unit_scaling = 0.32*2.25,
+		trackingVariable = "front_axle_speed_ground_speed",
+		unit_scaling = 2.25,
 		max = 90,
 		min = 0,
 		valueIsAbs = true,
@@ -171,12 +209,13 @@ function levels:createNormalLevel(levelData)
 	},
 	endCondition = levelData.endCondition or 600,
 	endMode = levelData.endMode or "distance_x",
+	scoreTest = levelData.scoreTest,
 	scoreMode = levelData.scoreMode or "maxSpeed",
 	scoreThreshold = levelData.scoreThreshold or 50,
 	}
-	levelTable[4] = menu:new{
+	part4MenuTable = {
 		am.rect(-400,-300,400,300,vec4(0,0.5,0.5,1)),
-		am.translate(vec2(0,200))^am.text("You passed the level with a score of ##D",vec4(1,1,1,1),1),
+		am.translate(vec2(0,200))^am.text("You passed",vec4(1,1,1,1),1),
 		newButton{
 			size=vec2(150,50),
 			position=vec2(-225,-25),
@@ -191,14 +230,17 @@ function levels:createNormalLevel(levelData)
 		newButton{
 			size=vec2(150,50),
 			position=vec2(-75,-25),
-			colour=vec4(0.9,0.4,0,1),
+			colour=vec4(0.9,0.4,0.2,1),
 			label="Retry",
 			labelColour=vec4(1,1,1,1),
 			clickFunction = 
 				function()
 					currentLevel:restart()
-				end},
-		newButton{
+				end
+		},
+	}
+	if levelData.nextLevel then
+		part4MenuTable[5] = newButton{
 			size=vec2(150,50),
 			position=vec2(75,-25),
 			colour=vec4(0,0.9,0.4,1),
@@ -208,15 +250,17 @@ function levels:createNormalLevel(levelData)
 				function() 
 					currentLevel:nextLevel()
 				end
-			},
 		}
+	end
+	
+	levelTable[4] = menu:new(part4MenuTable)
 	levelTable[5] = menu:new{
-		am.rect(-400,-300,400,300,vec4(0,0.5,0.5,1)),
-		am.translate(vec2(0,200))^am.text("You failed the level with a score of ##D",vec4(1,1,1,1),1),
+		am.rect(-400,-300,400,300,vec4(0.6,0.3,0,1)),
+		am.translate(vec2(0,200))^am.text("You failed",vec4(1,1,1,1),1),
 		newButton{
 			size=vec2(150,50),
-			position=vec2(-75,-25),
-			colour=vec4(0,0.9,0.4,1),
+			position=vec2(-225,-25),
+			colour=vec4(1,0,0,1),
 			label="Quit",
 			labelColour=vec4(1,1,1,1),
 			clickFunction = 
@@ -227,7 +271,7 @@ function levels:createNormalLevel(levelData)
 		newButton{
 			size=vec2(150,50),
 			position=vec2(-75,-25),
-			colour=vec4(0,0.9,0.4,1),
+			colour=vec4(0.9,0.4,0.2,1),
 			label="Retry",
 			labelColour=vec4(1,1,1,1),
 			clickFunction = 
@@ -238,7 +282,7 @@ function levels:createNormalLevel(levelData)
 		}
 		
 	local newLevel = levels:new(levelTable)
-	return newLevel
+	storedLevels[levelData.name] = newLevel
 end
 
 return levels
