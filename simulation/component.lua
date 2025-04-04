@@ -41,10 +41,6 @@ function component:newInstance(adjustmentList)
 	end
 	self.__index = self
 	setmetatable(newInstance, self)
-	print("--", newInstance.name, "--")
-	for k,v in pairs(newInstance.state) do
-		print(k,v[0], v[1])
-	end
 	if type(self.createNode) == "function" then
 		newInstance.node = newInstance:createNode()
 	end
@@ -162,7 +158,6 @@ function axle:new(a)
 end
 
 function axle:createNode()
-	print(self.axleIndex, "New axle sprite node created!")
 	local spriteNode = am.translate(vec2(0,0))^am.rotate(0)^am.sprite((self.sprite))
 	spriteNode:action( function (axleSprite)
 			axleSprite"translate".position2d = vec2(self.state.x[0],self.state.y[0])*50

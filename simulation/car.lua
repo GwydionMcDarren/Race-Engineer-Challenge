@@ -168,7 +168,6 @@ function car:applyConstraints(component,forceIn,dimension,forceTable,massMatrixT
 					massMatrixTable[powertrainComponentIndex-1][powertrainComponentIndex-1] = -1
 					massMatrixTable[powertrainComponentIndex-1][axleDimensionIndex-1] = outputConstraint.ratio
 					forceTable[powertrainComponentIndex-1][1] = 0
-					--print(axle.axleIndex, outputTorque, effectiveInertia)
 				end
 				forceTable[powertrainComponentIndex] = {0,0}
 			end
@@ -213,7 +212,6 @@ function car:new(body,axles,powertrain, isPlayer, adjustments)
 	newCar.axles = {}
 	newCar.powertrain = {}
 	for i,v in ipairs(axles) do
-		print("--AXLES--",i,v)
 		newCar.axles[i] = axles[i]:newInstance()
 		newCar.axles[i].dimensionIndices = {}
 	end
@@ -238,7 +236,10 @@ function car:new(body,axles,powertrain, isPlayer, adjustments)
 	end
 	--Iterate over car components to set the lowest dimension index for each component
 	for componentIndex,component in newCar:iterateOverComponents() do
-		component.firstDimensionIndex = math.min(listTable(component.dimensionIndices))
+		component.firstDimensionIndex = math.huge
+		for i,v in pairs(component.dimensionIndices) do
+			component.firstDimensionIndex = math.min(component.firstDimensionIndex , v)
+		end
 		component.componentIndex = componentIndex
 		component.parent = newCar
 	end
@@ -291,9 +292,7 @@ function car:createNode(adjustments)
 	local carParts = am.group()
 	local carNode = am.group(am.translate(vec2(0,0))^am.rotate(0)^carParts,am.text(""))
 	carParts:append(self.body.node)
-	print("-- Num axles --",#self.axles)
 	for index,axles in pairs(self.axles) do
-		print(index,axles,axles.name)
 		carParts:append(self.body.axleOffsetNodes[index]^self.axles[index].node)
 	end
 	self:applyAdjustments(adjustments)
