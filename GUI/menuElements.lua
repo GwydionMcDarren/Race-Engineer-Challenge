@@ -151,11 +151,11 @@ function newSlider(sliderData)
 			end
 		end
 		if slider.gripped then
-			slider.value = (win:mouse_position()-(slider"sliderBar".point1+slider"sliderLocation".position2d)).x*slider.range/slider.length
+			slider.value = (win:mouse_position()-(slider"sliderBar".point1+slider"sliderLocation".position2d)).x*(slider.range)/slider.length + slider.valueLimits[1]
 			slider.value = math.max(math.min(slider.value,slider.valueLimits[2]),slider.valueLimits[1])
 			if not win:mouse_down("left") then slider.gripped=false slider"sliderKnob".color = colourInvert(slider"sliderKnob".color) end
 		end
-		slider"sliderKnob".center = vec2((slider"sliderBar".point1).x + slider.value*slider.length/slider.range,
+		slider"sliderKnob".center = vec2(slider"sliderBar".point1.x + (slider.value - slider.valueLimits[1])*slider.length/slider.range,
 		slider"sliderBar".point1.y)
 		slider"value".text = string.format(sliderData.valueFormat,slider.value)
 	end

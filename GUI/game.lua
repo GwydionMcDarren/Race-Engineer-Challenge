@@ -39,6 +39,26 @@ function game:start(data)
 	win.scene:append(self:generateBackdrop(self.backdrop.sprite,self.backdrop.movement,self.backdrop.offset):tag("backdrop"))
 	win.scene:append(self.mobileScene:tag("mobileScene"))
 	win.scene:append(self.gui)
+	win.scene:append(am.translate(vec2(250,-275))^self:createTorqueSpeedGraph())
+	win.scene:append(am.translate(vec2(250,-150))^self:createLiveSuspensionGraph())
+	local inputTelem = am.translate(vec2(-300,-250))^
+		am.group{
+			am.rect(0,0,20,50,vec4(1,1,1,0.5)),
+			am.rect(30,0,50,50,vec4(1,1,1,0.5)),
+			am.rect(60,0,80,50,vec4(1,1,1,0.5)),
+			am.rect(0,0,20,50,vec4(0,1,0,1)):tag("throttleLevel"),
+			am.rect(30,0,50,50,vec4(1,0,0,1)):tag("brakeLevel"),
+			--am.rect(60,0,80,50,vec4(0,0,1,1)):tag("clutchLevel"),
+		}
+	inputTelem.height = 50
+	inputTelem:action(
+		function (inputTelem)
+			inputTelem"throttleLevel".y2 = inputTelem.height*currentGame.vehicle[1].controls.throttle
+			inputTelem"brakeLevel".y2 = inputTelem.height*currentGame.vehicle[1].controls.brake
+			--inputTelem"clutchLevel".y2 = inputTelem.height*currentGame.vehicle[1].controls.clutch
+		end
+	)
+	win.scene:append(inputTelem)
 	if self.menu then
 		win.scene:append(self.menu:tag("menu"))
 	end
@@ -46,6 +66,7 @@ function game:start(data)
 	--profiler = newProfiler()
 			--profiler:start()
 	scoreCounter:action( function (scoreCounter)
+		if not currentGame then return end
 		if not self.finished then
 			self.currentScore = self:updateScore(self.scoreMode, self.currentScore)
 			self.currentProgress = self:updateScore(self.endMode, self.currentProgress)
@@ -57,7 +78,9 @@ function game:start(data)
 		--for k,v in pairs(am.perf_stats()) do
 		--	str = str..k.." "..v.."\n"
 		--end
-		str = str.."Score: "..string.format("%.2f",100*self.currentScore/self.scoreThreshold).."%\n"
+		if self.scoreMode ~= self.endMode then
+			str = str.."Score: "..string.format("%.2f",100*self.currentScore/self.scoreThreshold).."%\n"
+		end
 		str = str.."Progress: "..string.format("%.2f",100*self.currentProgress/self.endCondition).."%"
 		scoreCounter"text".text = str
 		end
@@ -85,7 +108,7 @@ function game:triggerEnd()
 	endNode:action(
 		function(self)
 			local fadeInTime = 2
-			local gameKillTime = 5
+			local gameKillTime = 2
 			local timeSinceTrigger = am.frame_time - self.startTime
 			self"text".color = vec4(1,1,1,math.min(timeSinceTrigger/fadeInTime,1))
 			if timeSinceTrigger >= fadeInTime + gameKillTime then
@@ -103,6 +126,133 @@ function game:checkEndCondition(currentState)
 		self.finished = true
 	end
 end
+
+function game:createTorqueSpeedGraph(size)
+	local size = size or vec2(100,100)
+	local poweredComponent = nil
+	local poweredIndex = nil
+	for i,v in ipairs(self.vehicle[1].powertrain) do
+		if v.componentSubType == "electricMotor" or v.componentSubType == "combustionEngine" then
+			poweredComponent = v
+			poweredIndex = i
+		end
+	end
+	if not poweredIndex then return am.group() end
+	speedValues = {}
+	torqueValues = {}
+	local maxSpeed = 0
+	local maxTorque = 0
+	local maxPower = 0
+	local i = 0
+	while true do
+		table.insert(speedValues,i)
+		table.insert(torqueValues,poweredComponent:netForce("theta",true,i)[1])
+		maxTorque = math.max(poweredComponent:netForce("theta",true,i)[1],maxTorque)
+		maxPower = math.max(poweredComponent:netForce("theta",true,i)[1]*i,maxPower)
+		i = i+50
+		maxSpeed = i
+		if torqueValues[#torqueValues] < 0.2*maxTorque then break end
+	end
+	local getTorque = function (v)
+		if v >= speedValues[#speedValues] then return torqueValues[#torqueValues] end
+			local highIndex = #speedValues
+			local lowIndex = 1
+			while highIndex - lowIndex > 1 do
+				local guessIndex = math.floor((highIndex+lowIndex)/2)
+				if guessIndex == lowIndex then highIndex = guessIndex + 1
+				elseif speedValues[guessIndex] > v then highIndex = guessIndex
+				else lowIndex = guessIndex
+			end
+			end
+			local lowX = speedValues[lowIndex]
+			local highX = speedValues[highIndex]
+			local lowY = torqueValues[lowIndex]
+			local highY = torqueValues[highIndex]
+			local outputTorque = linearInterpolate(lowX,highX,lowY,highY,v)
+			return outputTorque
+		end
+	local graph = am.group{
+		am.rect(0,0,size.x,size.y,vec4(0.2,0.2,0.2,0.5)),
+		am.line(vec2(0,0),vec2(0,size.y)),
+		am.line(vec2(0,0),vec2(size.x,0)),
+		am.circle(vec2(0,0),2,vec4(0,0,1,1)):tag("power"),
+		am.circle(vec2(0,0),2,vec4(1,0,0,1)):tag("torque"),
+		am.translate(vec2(-5,2*size.y/3))^am.text("Power",vec4(0,0,1,1),"right"),
+		am.translate(vec2(-5,size.y/3))^am.text("Torque",vec4(1,0,0,1),"right"),
+		am.translate(vec2(size.x/2,-10))^am.text("Speed",vec4(1,1,1,1),"center"),
+	}
+	for i=1,#speedValues-2 do
+		graph:append(
+			am.line(vec2(speedValues[i]*size.x/maxSpeed,torqueValues[i]*size.y/(maxTorque*1.1)),
+			vec2(speedValues[i+1]*size.x/maxSpeed,torqueValues[i+1]*size.y/(maxTorque*1.1)),1,vec4(1,0,0,1))
+		)
+		graph:append(
+			am.line(vec2(speedValues[i]*size.x/maxSpeed,speedValues[i]*torqueValues[i]*size.y/(maxPower*1.1)),
+			vec2(speedValues[i+1]*size.x/maxSpeed,speedValues[i+1]*torqueValues[i+1]*size.y/(maxPower*1.1)),1,vec4(0,0,1,1))
+		)
+	end
+	graph:action(
+		function (graphNode)
+			local speed = math.min(math.abs(currentGame.vehicle[1].powertrain[poweredIndex].state.theta[1]), maxSpeed)
+			local xPos = math.min(speed/maxSpeed,1)*size.x
+			local torqueYPos = size.y*getTorque(speed)/(maxTorque*1.1)
+			local powerYPos = size.y*getTorque(speed)*speed/(maxPower*1.1)
+			graphNode"torque".position2d = vec2(xPos, torqueYPos)
+			graphNode"power".position2d = vec2(xPos, powerYPos)
+		end
+	)
+	return graph:tag"telemGraph"
+end
+
+function game:createLiveSuspensionGraph(size)
+	local size=size or vec2(100,100)
+	local numAxles = self.vehicle[1].body.params.numAxles
+	local cols = {vec4(1,0,0,1),
+		vec4(0,0,1,1),
+		vec4(0,1,0,1),
+		vec4(1,1,0,1),
+		vec4(0,1,1,1),
+		vec4(1,0,1,1),
+		}
+	local numSegments = 50
+	local graph = am.group{
+		am.rect(0,0,size.x,size.y,vec4(0.2,0.2,0.2,0.5)),
+		am.line(vec2(0,0),vec2(0,size.y)),
+		am.line(vec2(0,size.y/2),vec2(size.x,size.y/2)),
+		am.translate(vec2(size.x/2,size.y+10))^am.text("Time",vec4(1,1,1,1),"center"),
+		}
+	for i,v in self.vehicle[1]:iterateOverAxles() do
+		local axleLine = am.group():tag("axleLine")
+		for j=1,numSegments do
+			axleLine:append(am.line(vec2(size.x-(j-1)*(size.x/numSegments),0),vec2(size.x-j*(size.x/numSegments),0),1,cols[i%#cols]))
+		end
+		axleLine.parent = v
+		axleLine.dataHistory = {}
+		graph:append(axleLine)
+		graph:append(am.translate(vec2(-5,(numAxles-i+1)*size.y/(numAxles+1)))^am.text("Axle "..tostring(i),cols[i%#cols],"right"))
+	end
+	graph.scaling = 10
+	graph.maxValue = 0
+	graph:action(
+		function (graphNode)
+			graphNode.maxValue = 0
+			for i,axleLine in ipairs(graphNode:all"axleLine") do
+				local newData = axleLine.parent.state.y[0]
+				local newMax = graphNode.maxValue
+				table.insert(axleLine.dataHistory,newData)
+				if #axleLine.dataHistory > numSegments + 1 then table.remove(axleLine.dataHistory,1) end
+				for j, lineSegment in axleLine:child_pairs() do
+					graphNode.maxValue = math.max(math.abs(axleLine.dataHistory[#axleLine.dataHistory+1-j] or 0), graphNode.maxValue)
+					lineSegment.point1 = vec2(lineSegment.point1.x, ((axleLine.dataHistory[#axleLine.dataHistory+1-j] or 0)*graphNode.scaling)+size.y/2)
+					lineSegment.point2 = vec2(lineSegment.point2.x, ((axleLine.dataHistory[#axleLine.dataHistory-j] or 0)*graphNode.scaling)+size.y/2)
+				end
+			end
+			graphNode.scaling = size.y/(2*math.max(graphNode.maxValue,1e-4))
+		end
+	)
+	return graph:tag"telemGraph"
+end
+	
 
 function game:kill()
 	--profiler:stop()
@@ -125,11 +275,12 @@ function game:kill()
 	end
 	win.scene:remove("mobileScene")
 	win.scene:remove("gameMonitor")
+	win.scene:remove_all("telemGraph")
 	win.scene:remove("menu")
 	vehiclesRemain = true
 	while win.scene"vehicle" do
-		win.scene"vehicle":remove_all()
-		iterativeTableDestroy(win.scene"vehicle".parent)
+		win.scene"vehicle":remove("axle")
+		win.scene"vehicle":remove("axleOffset")
 		vehiclesRemain = win.scene:remove("vehicle")
 		win.scene:remove_all()
 	end
@@ -154,6 +305,21 @@ function game:kill()
 	else
 		return finalScore
 	end
+end
+
+function game:restartLevel()
+	self:kill()
+	currentLevel:restart()
+end
+
+function game:restartLevel()
+	self:kill()
+	currentLevel:restart()
+end
+
+function game:quitLevel()
+	self:kill()
+	closeMenuAndQuit()
 end
 
 --We also need to define the gui elements in this class
@@ -196,8 +362,21 @@ function game:updateScore(scoreMode, currentScore)
 	elseif scoreMode == "maxDistance" then
 		currentScore = math.max(currentScore, math.sqrt(currentGame.vehicle[1].body.state.x[0]^2+currentGame.vehicle[1].body.state.y[0]^2))
 	elseif scoreMode == "maxSuspensionTravel" then
-		for index,axle in currentGame.vehicle[1]:iterateOverAxles() do
-			currentScore = math.max(currentScore, math.abs(axle.state.y[0]))
+		if self.gameTime > 1 then
+			for index,axle in currentGame.vehicle[1]:iterateOverAxles() do
+				currentScore = math.max(currentScore, math.abs(axle.state.y[0]-self.scoreOffset[index]))
+			end
+		else
+			if not self.scoreOffset then self.scoreOffset = {} end
+			for index,axle in currentGame.vehicle[1]:iterateOverAxles() do
+				self.scoreOffset[index] = (self.scoreOffset[index] or 0) + axle.state.y[0]/60
+			end
+		end
+	elseif scoreMode == "body_max_y_travel" then
+		if self.gameTime > 1 then
+			currentScore = math.max(currentScore, math.abs(currentGame.vehicle[1].body.state.y[0]-self.scoreOffset))
+		else
+			self.scoreOffset = (self.scoreOffset or 0) + currentGame.vehicle[1].body.state.y[0]/60
 		end
 	elseif scoreMode == "time" then
 		currentScore = currentScore + am.delta_time

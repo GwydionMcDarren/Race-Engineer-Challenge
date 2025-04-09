@@ -4,6 +4,8 @@ UNIT_TESTS = false
 DEBUG = false
 TELEMETRY = false
 g = 9.81
+airDensity = 1.1 --kg/m^3
+frontalArea = 2 --m^2
 num_steps = 3
 
 win = am.window{

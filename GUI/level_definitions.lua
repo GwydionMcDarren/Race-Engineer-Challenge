@@ -1,147 +1,157 @@
 function defineLevels()
-sandbox = {}
 storedLevels = {}
-sandbox = game:new{
-	vehicle = {
-		car:new(
-			componentLibrary.bodies.old_hatchback,
-			{
-				componentLibrary.axles.old_wheel,
-				componentLibrary.axles.old_wheel,
-			},
-			componentLibrary.powertrain.low_power_electric_motor
-		),
-	},
-	roadNode = roadSurface:new(createWavyRoad()[1],createWavyRoad()[2]),--{0,30,1000,1500,2000,2500,3000},{0,0,100,0,0,0,0}), --
-	backdrop = {
-		sprite = backgroundHillSprite,
-		movement = 5,
-		offset = vec2(0,0)
-	},
-	gui = gui:newElement{
-		trackingVariable = "front_axle_speed",
-		unit_scaling = 0.3*2.25,
-		max = 90,
-		min = 0,
-		valueIsAbs = true,
-		location = vec2(0,-150),
-	},
-	menu = menu:new{
-		newButton{
-			size=vec2(150,50),
-			position=vec2(-300,-200),
-			colour=vec4(1,0.8,0,1),
-			label="Restart",
-			labelColour=vec4(1,1,1,1),
-			clickFunction = 
-				function()
-					currentLevel:nextStage(d)
-				end
-		},
-		newButton{
-			size=vec2(150,50),
-			position=vec2(-300,-250),
-			colour=vec4(1,0,0,1),
-			label="Quit",
-			labelColour=vec4(1,1,1,1),
-			clickFunction = 
-				function()
-					currentGame:kill() 
-					mainMenu:initialise()
-					defineLevels()
-				end
-		},
-	},
-}
-levels:createNormalLevel{
-	name = 1,
-	introText="You are setting a car to drive up a steep hill. To pass this level, you need to get the car to at least 60 mph. Select a gear ratio that will help the car get up the hill quickly.",
-	shortIntroText="Set up the car to drive up the hill",
+
+	levels:createNormalLevel{
+	name = "gears1",
+	introText="You are driving a car up a steep hill. Select a gear ratio that will help the car get up the hill quickly.\nCar mass: 1300kg\nPeak Motor Torque: 130Nm\nMax Gradient: 1 in 5\nIf you don't make it up the hill, you can click 'Restart'",
+	shortIntroText="Set up the car to drive up the hill. Note: a reduction ratio reduces output speed, but increases output torque.",
+	passText="Well done! A higher reduction ratio gives the car more torque to get up the steep hill",
 	adjustments={
 		{
 			adjustmentType="motor_driveRatio",
-			default=5,
-			low=0.5,
-			high=10,
+			default=3.7,
+			low=1,
+			high=9,
 		},
 	},
 	car={
 		body="hatchback",
-		axles="basic_wheel",
+		axles={"basic_wheel","basic_wheel"},
 		powertrain="low_power_electric_motor",
 	},
 	roadSurface={
-		x = uphillRoad(50,500)[1],
-		y = uphillRoad(50,500)[2]
+		x = uphillRoad(160,800)[1],
+		y = uphillRoad(160,800)[2]
 	},
-	scoreMode="maxSpeed",
-	scoreThreshold=40/2.25,
+	scoreMode="x_distance",
+	scoreThreshold=400,
 	scoreTest=nil,
 	endMode="x_distance",
 	endCondition=400,
+	nextLevel="gears2"
 }
 
 	levels:createNormalLevel{
-	name = 2,
-	introText="You are setting a car to drive up a steep hill. To pass this level, you need to get the car to at least 60 mph. Select a gear ratio that will help the car get up the hill quickly.",
-	shortIntroText="Set up the car to drive up the hill",
+	name = "gears2",
+	introText="You are now driving a car along a flat road. Set up the gear ratio to reach 90mph\nThis car has a manual gearbox, so you will have to change gears as you accelerate using the A key",
+	shortIntroText="Set up the car to have a high maximum speed",
+	passText="Well done! A lower reduction ratio allows the car to reach a higher speed",
+	failedText="",
 	adjustments={
 		{
-			adjustmentType="motor_driveRatio",
-			default=5,
-			low=0.5,
-			high=10,
+			adjustmentType="engine_finalDriveRatio",
+			default=10,
+			low=5,
+			high=17,
 		},
 	},
 	car={
-		body="hatchback",
-		axles="basic_wheel",
-		powertrain="low_power_electric_motor",
+		body="old_hatchback",
+		axles={"old_wheel","old_wheel"},
+		powertrain="Z14XEP",
 	},
 	roadSurface={
-		x = uphillRoad(50,500)[1],
-		y = uphillRoad(50,500)[2]
+		x = {0,10000},
+		y = {0,0}
 	},
 	scoreMode="maxSpeed",
-	scoreThreshold=40/2.25,
+	scoreThreshold=90/2.25,
 	scoreTest=nil,
-	endMode="x_distance",
-	endCondition=400,
-	nextLevel = 5
+	endMode="maxSpeed",
+	endCondition=90/2.25,
+	initialCondition = {carPosition = -2}
 }
 
 	levels:createNormalLevel{
-	name = 3,
-	introText="You are driving a car over a bumpy road. Try keep suspension travel to less than 0.25m before you reach 30mph",
-	shortIntroText="Minimise suspension travel at 30mph",
+	name = "suspension1",
+	introText="You are driving a car over a bumpy road. Adjust the damping level to keep suspension travel to less than 0.15m before you reach 60mph",
+	shortIntroText="Minimise suspension travel when accelerating to 60mph",
+	passText="Well done, higher levels of damping help disappate energy when the car oscillates",
+	failureText="Your car bounced too much!\nCan you change the level of damping to absorb those oscillations?",
 	adjustments={
-		{
-			adjustmentType="axle_springRate",
-			default=6e4,
-			low=1e4,
-			high=10e4,
-		},
 		{
 			adjustmentType="axle_dampingRate",
 			default=0,
 			low=0,
-			high=1e4,
+			high=4.5e3,
 		},
 	},
 	car={
 		body="sedan",
-		axle="basic_wheel",
-		powertrain="high_power_electric_motor",
+		axles={"basic_wheel","basic_wheel"},
+		powertrain="low_power_electric_motor",
 	},
 	roadSurface={
 		x = createSinusoidalRoad(1.235,0.05,2000)[1],
 		y = createSinusoidalRoad(1.235,0.05,2000)[2]
 	},
 	scoreMode="maxSuspensionTravel",
-	scoreThreshold=0.25,
+	scoreThreshold=0.15,
 	scoreTest="lessThan",
 	endMode="maxSpeed",
-	endCondition=30/2.25,
+	endCondition=60/2.25,
+	nextLevel = "suspension2"
+}
+	levels:createNormalLevel{
+	name = "suspension2",
+	introText="You are driving a car over a large bump in the road. Adjust the spring stiffness to keep suspension travel to less than 0.25m as you cross it. In this level, the car will be travelling at 60mph",
+	shortIntroText="Minimise suspension travel over the bump",
+	passText="Well done, a higher suspension stiffness reduces the suspension travel over bumps,\nhelping the wheels stay in contact with the road",
+	failureText="Your car's wheels bounced too much over the bump, meaning they lost contact with the road!\nCan you adjust the suspension stiffness so the wheels move less when they hit the bump?",
+	adjustments={
+		{
+			adjustmentType="axle_springRate",
+			default=3e4,
+			low=3e4,
+			high=1e5,
+		},
+	},
+	car={
+		body="sedan",
+		axles={"basic_wheel","basic_wheel"},
+		powertrain="low_power_electric_motor",
+	},
+	roadSurface={
+		x = {0,100,100.5,101.5,102,1000},
+		y = {0,0,0.20,0.20,0,0}
+	},
+	scoreMode="maxSuspensionTravel",
+	scoreThreshold=0.25,
+	scoreTest="lessThan",
+	endMode="x_distance",
+	endCondition=120,
+	initialCondition = {carSpeed = 60/2.25},
+	nextLevel = "suspension3",
+}
+	levels:createNormalLevel{
+	name = "suspension3",
+	introText="You are seting up a car to drive over the same large bump in the road. This time, adjust the spring stiffness to limit the movement of the body to less than 0.2m over the bump. In this level, the car will be travelling at 60mph",
+	shortIntroText="Minimise body movement over the bump",
+	passText="Well done, a lower suspension stiffness reduces the transmission\nof the bumps into the body, making the ride more comfortable",
+	failureText="Your car's body bounced too much over the bump, making the ride very uncomfortable!\nCan you adjust the suspension stiffness so the\nbody moves less when the car hits the bump?",
+	adjustments={
+		{
+			adjustmentType="axle_springRate",
+			default=3e4,
+			low=3e4,
+			high=1e5,
+		},
+	},
+	car={
+		body="sedan",
+		axles={"basic_wheel","basic_wheel"},
+		powertrain="low_power_electric_motor",
+	},
+	roadSurface={
+		x = {0,100,100.5,101.5,102,1000},
+		y = {0,0,0.25,0.25,0,0}
+	},
+	scoreMode="body_max_y_travel",
+	scoreThreshold=0.2,
+	scoreTest="lessThan",
+	endMode="x_distance",
+	endCondition=120,
+	initialCondition = {carSpeed = 60/2.25},
 }
 
 	levels:createNormalLevel{
@@ -150,7 +160,7 @@ levels:createNormalLevel{
 	shortIntroText="Model Verification Tests",
 	car={
 		body="unitMass",
-		axle="unitMass_wheel",
+		axles={"unitMass_wheel"},
 		powertrain="low_power_electric_motor",
 	},
 	roadSurface={
@@ -161,35 +171,7 @@ levels:createNormalLevel{
 	scoreThreshold=2,
 	scoreTest=nil,
 	endMode="time",
-	endCondition=30,
-}
-
-	levels:createNormalLevel{
-	name = 5,
-	introText="You are now driving a car along a flat road. Set up the gear ratio to reach 85mph in half a mile",
-	shortIntroText="Set up the car to have a high maximum speed",
-	adjustments={
-		{
-			adjustmentType="motor_driveRatio",
-			default=8,
-			low=0.1,
-			high=15,
-		},
-	},
-	car={
-		body="old_hatchback",
-		axles="old_wheel",
-		powertrain="low_power_electric_motor",
-	},
-	roadSurface={
-		x = {0,1000},
-		y = {0,0}
-	},
-	scoreMode="maxSpeed",
-	scoreThreshold=85/2.25,
-	scoreTest=nil,
-	endMode="x_distance",
-	endCondition=800,
+	endCondition=10,
 }
 
 end

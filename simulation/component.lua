@@ -30,20 +30,16 @@ function component:getDimensionIndex(dimension)
 end
 
 function component:newInstance(adjustmentList)
-	local newInstance = {}
+	local newInstance = table.deep_copy(self)
 	newInstance.state = {}
 	for index,dimension in pairs(self.dimensions) do
 		newInstance.state[dimension] = {[0] = 0,0}
 	end
-	local adjustmentsList = adjustmentsList or {}
-	for k,v in pairs(adjustmentsList) do
-		newInstance.params.k = v
-	end
-	self.__index = self
-	setmetatable(newInstance, self)
 	if type(self.createNode) == "function" then
-		newInstance.node = newInstance:createNode()
+		newInstance.node = self.createNode(newInstance)
 	end
+	setmetatable(newInstance, self)
+	self.__index = self
 	return newInstance
 end
 
@@ -88,6 +84,7 @@ end
 function body:netForce(dimension)
 	local suspensionForce = {x=0,y=0,theta=0}
 	local wheelLongitudinalForce = {x=0,y=0,theta=0}
+	local dragConstant = self.params.dragCoefficient * airDensity * frontalArea / 2
 	for index,axle in ipairs(self.parent.axles) do
 		local suspensionForceI = self.parent:forceDirectional(axle:vecToGlobalCoords(vec2(0,axle.calcs.getSuspensionForce)), axle:vecToGlobalCoords(self.params.axleOffsets[index]/50+vec2(0,axle.state.y[0])))
 		for dimension,value in pairs(suspensionForce) do
@@ -95,9 +92,9 @@ function body:netForce(dimension)
 		end
 	end
 	if dimension == "x" then
-		return {self.state.x[1]^2*self.params.dragCoefficient*math.sign(-self.state.x[1])+suspensionForce.x, 0}
+		return {self.state.x[1]^2*dragConstant*math.sign(-self.state.x[1])+suspensionForce.x, 0}
 	elseif dimension == "y" then
-		return {suspensionForce.y-self.inertia.y*g+self.state.y[1]^2*self.params.dragCoefficient*math.sign(-self.state.y[1]),0}
+		return {suspensionForce.y-self.inertia.y*g+self.state.y[1]^2*dragConstant*math.sign(-self.state.y[1]),0}
 	elseif dimension == "theta" then
 		return {suspensionForce.theta,0}
 	else
@@ -110,7 +107,7 @@ function body:update()
 end
 
 function body:createNode()
-	local spriteNode = am.sprite((self.sprite))
+	local spriteNode = am.sprite(self.sprite)
 	spriteNode.parent = self
 	return spriteNode
 end
@@ -145,26 +142,21 @@ function axle:new(a)
 		maxSlipFriction = a.maxSlipFriction or 1.03,
 	}
 	newAxle.constraints = {x = {body = {x="fixed"}}}
-	newAxle.sprite = a.sprite or "graphics/wheel.png"--[[
-	newAxle.sprite = am.translate(vec2(0,0))^am.rotate(0)^am.sprite((a.sprite or "graphics/wheel.png"))
-	newAxle.sprite.parent = newAxle
-	newAxle.sprite:action( function (axleSprite)
-			axleSprite"translate".position2d = vec2(axleSprite.parent.state.x[0],axleSprite.parent.state.y[0])*50
-			axleSprite"rotate".angle = -axleSprite.parent.state.theta[0]
-		end
-	)]]
+	newAxle.sprite = a.sprite or "graphics/wheel.png"
 	setmetatable(newAxle, self)
 	return newAxle
 end
 
 function axle:createNode()
-	local spriteNode = am.translate(vec2(0,0))^am.rotate(0)^am.sprite((self.sprite))
+	local spriteNode = nil
+	spriteNode = am.translate(vec2(0,0))^am.rotate(0)^am.sprite(self.sprite)
+	spriteNode.parent = self
 	spriteNode:action( function (axleSprite)
-			axleSprite"translate".position2d = vec2(self.state.x[0],self.state.y[0])*50
-			axleSprite"rotate".angle = -self.state.theta[0]
+--			axleSprite"translate".position2d = vec2(0,axleSprite.parent.state.y[0])*50
+--			axleSprite"rotate".angle = -axleSprite.parent.state.theta[0]
 		end
 	)
-	return spriteNode
+	return spriteNode:tag("axle")
 end
 	
 

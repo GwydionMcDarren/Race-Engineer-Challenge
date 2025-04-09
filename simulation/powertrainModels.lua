@@ -5,17 +5,23 @@
 
 --Electric motor, and ICE-clutch-gearbox
 
-electricMotorPowertrain = {}
+torquePowerLimitedMotorPowertrain = {}
 
-function electricMotorPowertrain:new(maxPower, maxTorque, rInertia, drivenAxles, driveRatio)
+function torquePowerLimitedMotorPowertrain:new(maxPower, maxTorque, rInertia, drivenAxles, driveRatio)
 	local newElectricMotor = component:new{
 		dimensions = {"theta"},
 		componentType = "powertrain",
 		componentSubType = "electricMotor",
-		netForce = function (self)
-			return {self.parent.controls.throttle * self.direction * math.min(self.params.maxTorque, self.params.maxPower / math.abs(self.state.theta[1])), 0}
+		netForce = function (self,dimension,maxPowerTest,testSpeed)
+			local throttle = self.parent.controls.throttle
+			local speed = self.state.theta[1]
+			if maxPowerTest then throttle = 1 end
+			if maxPowerTest then speed = testSpeed end
+			--print(throttle * self.direction * math.min(self.params.maxTorque, self.params.maxPower / math.abs(speed)))
+			return {throttle * self.direction * math.min(self.params.maxTorque, self.params.maxPower / math.abs(speed)), 0}
 		end,
 		update = function (self)
+			self.gear = self.direction
 			if self.parent.controls.gear_up or self.parent.controls.gear_down then
 				if self.state.theta[1] * self.direction < 5 then
 					self.direction = self.direction * -1
@@ -25,6 +31,7 @@ function electricMotorPowertrain:new(maxPower, maxTorque, rInertia, drivenAxles,
 		params = {
 		maxTorque = maxTorque,
 		maxPower = maxPower,
+		ratioNames = {[-1] = "R", [1] = "F"}
 		},
 		direction = 1,
 		inertia = {theta = rInertia or 10},
@@ -43,18 +50,24 @@ end
 
 combustionEngine = {}
 
-function combustionEngine:new(speedValues, torqueValues, rInertia, driveRatio)
+function combustionEngine:new(speedValues, torqueValues, rInertia, ratios, finalDrive, defaultGear, ratioNames)
 	local newCombustionEngine = component:new{
 		dimensions = {"theta"},
 		componentType = "powertrain",
 		componentSubType = "combustionEngine",
 		throttle = 0,
 		starter = 0,
+		gear = 1,
 		uninitialised = true,
-		netForce = function (self)
+		netForce = function (self, dimension, maxPowerTest,testSpeed)
+			if self.parent.controls.clutch > 0.5 then return {0,0} end
 			local v = self.state.theta[1]
+			local throttle = self.throttle
+			if maxPowerTest then throttle = 1 end
+			if maxPowerTest then v = testSpeed end
 			--if v <= self.params.speedValues[1] then return {0, -10} end
 			if v >= self.params.speedValues[#self.params.speedValues] then return {0, -10} end
+			if v <= self.params.speedValues[1] then return {self.params.torqueValues[1], 0} end
 			local highIndex = #self.params.speedValues
 			local lowIndex = 1
 			while highIndex - lowIndex > 1 do
@@ -69,12 +82,14 @@ function combustionEngine:new(speedValues, torqueValues, rInertia, driveRatio)
 			local lowY = self.params.torqueValues[lowIndex]
 			local highY = self.params.torqueValues[highIndex]
 			maxTorque = linearInterpolate(lowX,highX,lowY,highY,v)
-			return {(maxTorque+10)*self.throttle-10 + self.starter * 20, 0}
+			return {(maxTorque+10)*throttle-10 + self.starter * 20, 0}
 		end,
 		update = function (self)
 			if self.uninitialised then 
 				self.state.theta[1] = self.params.speedValues[1]
+				self.gear = self.params.defaultGear
 				self.uninitialised = false
+				self.constraints.output.ratio = self.params.ratios[self.gear]*self.params.finalDrive
 			end
 			if self.state.theta[1] < 30 then 
 				self.starter = 1
@@ -85,18 +100,46 @@ function combustionEngine:new(speedValues, torqueValues, rInertia, driveRatio)
 				self.throttle = self.parent.controls.throttle
 				self.starter = 0
 			end
+			--gear logic
+			if self.parent.controls.gear_up then
+				local oldGearRatio = self.constraints.output.ratio
+				self.gear = math.min(self.gear+1,#self.params.ratios)
+				local newGearRatio = self.params.ratios[self.gear]*self.params.finalDrive
+				self.constraints.output.ratio = newGearRatio
+				local outputSpeed = self.parent.axles[self.constraints.output.axles[1]].state.theta[1]
+				print(outputSpeed, newGearRatio, self.gear)
+				self.state.theta[1] = outputSpeed*newGearRatio
+			elseif self.parent.controls.gear_down then
+				local oldGearRatio = self.constraints.output.ratio
+				self.gear = math.max(self.gear-1,1)
+				local newGearRatio = self.params.ratios[self.gear]*self.params.finalDrive
+				self.constraints.output.ratio = newGearRatio
+				local outputSpeed = self.parent.axles[self.constraints.output.axles[1]].state.theta[1]
+				print(outputSpeed, newGearRatio, self.gear)
+				self.state.theta[1] = outputSpeed*newGearRatio
+			end
 		end,
 		params = {
-		speedValues = speedValues,
-		torqueValues = torqueValues,
+			speedValues = speedValues,
+			torqueValues = torqueValues,
+			ratios = ratios or {-3, 0, 2, 1.5, 1.2, 0.8, 0.5},
+			finalDrive = finalDrive or 3.74,
+			defaultGear = defaultGear or 3,
+			ratioNames = ratioNames or {"R", "N", "1", "2", "3", "4", "5"},
 		},
 		direction = 1,
 		inertia = {theta = rInertia or 10},
-		constraints = {
+		constraints = {--[[
 			output = {
 				type = "stick-slip",
 				ratio = driveRatio or 1,
 				powertrainComponents = gearboxPart or {2}
+			}]]
+			
+			output = {
+				type = "fixed-axle",
+				ratio = 10,--driveRatio or 100,
+				axles = drivenAxles or {1}
 			}
 		}
 	}

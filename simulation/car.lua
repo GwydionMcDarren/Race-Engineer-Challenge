@@ -153,23 +153,25 @@ function car:applyConstraints(component,forceIn,dimension,forceTable,massMatrixT
 		if powertrainComponent.constraints.output then
 			local outputConstraint = powertrainComponent.constraints.output
 			if outputConstraint.type == "fixed-axle" then
-				local outputTorque = forceTable[powertrainComponentIndex][1] * outputConstraint.ratio/#outputConstraint.axles
-				--local effectiveInertia = powertrainComponent.inertia.theta*(outputConstraint.ratio^2)/#outputConstraint.axles
-				for index,axleIndex in ipairs(outputConstraint.axles) do
-					local axleDimensionIndex = (self.axles[axleIndex].firstDimensionIndex+2) * 2
-					forceTable[axleDimensionIndex][1] = forceTable[axleDimensionIndex][1] + outputTorque
-					for i=1,#massMatrixTable do
-						massMatrixTable[axleDimensionIndex][i] = massMatrixTable[axleDimensionIndex][i] + massMatrixTable[powertrainComponentIndex][i]/((outputConstraint.ratio^2)*#outputConstraint.axles)
-						massMatrixTable[powertrainComponentIndex][i] = 0
+				if outputConstraint.ratio ~= 0 then
+					local outputTorque = forceTable[powertrainComponentIndex][1] * outputConstraint.ratio/#outputConstraint.axles
+					--local effectiveInertia = powertrainComponent.inertia.theta*(outputConstraint.ratio^2)/#outputConstraint.axles
+					for index,axleIndex in ipairs(outputConstraint.axles) do
+						local axleDimensionIndex = (self.axles[axleIndex].firstDimensionIndex+2) * 2
+						forceTable[axleDimensionIndex][1] = forceTable[axleDimensionIndex][1] + outputTorque
+						for i=1,#massMatrixTable do
+							massMatrixTable[axleDimensionIndex][i] = massMatrixTable[axleDimensionIndex][i] + massMatrixTable[powertrainComponentIndex][i]/((outputConstraint.ratio^2)*#outputConstraint.axles)
+							massMatrixTable[powertrainComponentIndex][i] = 0
+						end
+						massMatrixTable[powertrainComponentIndex][powertrainComponentIndex] = -1
+						massMatrixTable[powertrainComponentIndex][axleDimensionIndex] = outputConstraint.ratio
+						forceTable[powertrainComponentIndex][1] = 0
+						massMatrixTable[powertrainComponentIndex-1][powertrainComponentIndex-1] = -1
+						massMatrixTable[powertrainComponentIndex-1][axleDimensionIndex-1] = outputConstraint.ratio
+						forceTable[powertrainComponentIndex-1][1] = 0
 					end
-					massMatrixTable[powertrainComponentIndex][powertrainComponentIndex] = -1
-					massMatrixTable[powertrainComponentIndex][axleDimensionIndex] = outputConstraint.ratio
-					forceTable[powertrainComponentIndex][1] = 0
-					massMatrixTable[powertrainComponentIndex-1][powertrainComponentIndex-1] = -1
-					massMatrixTable[powertrainComponentIndex-1][axleDimensionIndex-1] = outputConstraint.ratio
-					forceTable[powertrainComponentIndex-1][1] = 0
+					forceTable[powertrainComponentIndex] = {0,0}
 				end
-				forceTable[powertrainComponentIndex] = {0,0}
 			end
 		end
 	end
@@ -263,7 +265,7 @@ function car:updateControls()
 	if win:key_pressed("a") then
 		self.controls.gear_up = true
 		self.controls.gear_down = false
-	elseif win:key_pressed("s") then
+	elseif win:key_pressed("z") then
 		self.controls.gear_up = false
 		self.controls.gear_down = true
 	else
@@ -272,14 +274,14 @@ function car:updateControls()
 	end
 	--other controls use key_down
 	if win:key_down("up") then
-		self.controls.throttle = 1
+		self.controls.throttle = math.min(self.controls.throttle + 0.1,1)
 	else
-		self.controls.throttle = 0
+		self.controls.throttle = math.max(self.controls.throttle - 0.1,0)
 	end
 	if win:key_down("down") then
-		self.controls.brake = 1
+		self.controls.brake = math.min(self.controls.brake + 0.1,1)
 	else
-		self.controls.brake = 0
+		self.controls.brake = math.max(self.controls.brake - 0.1,0)
 	end
 	if win:key_down("space") then
 		self.controls.clutch = 1
@@ -290,16 +292,20 @@ end
 	
 function car:createNode(adjustments)
 	local carParts = am.group()
-	local carNode = am.group(am.translate(vec2(0,0))^am.rotate(0)^carParts,am.text(""))
 	carParts:append(self.body.node)
-	for index,axles in pairs(self.axles) do
-		carParts:append(self.body.axleOffsetNodes[index]^self.axles[index].node)
+	for index,axle in pairs(self.axles) do
+		carParts:append(self.body.axleOffsetNodes[index]:tag("axleOffset")^axle.node)
 	end
 	self:applyAdjustments(adjustments)
 	self.body.state.x[0] = 0
 	self.body.state.x[1] = 0
 	self.body.state.y[0] = currentGame.mobileScene"roadSurface":getHeight(self.body.state.x[0])+(-self.body.params.axleOffsets[1].y/50)
-	carNode.parent = self
+	if currentGame then
+		if currentGame.initialCondition then
+			self.body.state.x[1] = currentGame.initialCondition.carSpeed or 0
+			self.body.state.x[0] = currentGame.initialCondition.carPosition or 0
+		end
+	end
 	if TELEMETRY then
 		self.telem = {{"time"}}
 		for index,component,dimension in self:iterateOverDoF() do
@@ -308,8 +314,9 @@ function car:createNode(adjustments)
 		end
 		self.telemTime = 0
 	end
+	local carNode = am.group(am.translate(vec2(0,0))^am.rotate(0)^carParts,am.text(""))
+	carNode.parent = self
 	carNode:action( function (bodySprite)
-		if not win:key_down("space") then
 		ts = 1/(60*num_steps)
 		timestep = 0
 		while timestep <= am.delta_time do
@@ -327,6 +334,9 @@ function car:createNode(adjustments)
 		for index,component in self:iterateOverComponents() do
 			component:update()
 		end
+		for i,axleSprite in pairs(bodySprite:all"axle") do
+			axleSprite"translate".position2d = vec2(0,self.axles[i].state.y[0])*50
+			axleSprite"rotate".angle = -self.axles[i].state.theta[0]
 		end
 		if win:key_pressed("q") then
 			print("STATE DUMP\n")
@@ -334,7 +344,7 @@ function car:createNode(adjustments)
 				print(component.state[dimension][1])
 			end
 		end
-		if win:key_pressed("1") then self.body.state.x[1] = 30 end
+		--if win:key_pressed("1") then self.body.state.x[1] = 70 end
 		currentGame:updateCamera(self)
 		self:updateControls()
 		bodySprite"translate".position2d = vec2(bodySprite.parent.body.state.x[0],bodySprite.parent.body.state.y[0])*50
@@ -425,10 +435,12 @@ adjustmentNames = {
 	rearAxle_maxSlipFriction = "",
 	motor_maxTorque = "Peak Electric Motor Torque (Nm)",
 	motor_maxPower = "Peak Electric Motor Power (kW)",
-	motor_driveRatio = "Final Drive Ratio",
+	motor_driveRatio = "Motor Reduction Ratio",
+	engine_finalDriveRatio = "Final Drive Ratio",
 }
 function car:applyAdjustments(adjustmentList)
 	local adjustmentList = adjustmentList or {}
+	--iterativeTablePrint(adjustmentList)
 	self.body.inertia.x = adjustmentList.body_Mass or self.body.inertia.x
 	self.body.inertia.y = adjustmentList.body_Mass or self.body.inertia.y
 	self.body.inertia.theta = adjustmentList.body_rInertia or self.body.inertia.theta
@@ -460,7 +472,6 @@ function car:applyAdjustments(adjustmentList)
 	rearAxle.params.maxSlipFriction = adjustmentList.rearAxle_maxSlipFriction or rearAxle.params.maxSlipFriction
 	local electricMotor = false
 	local combustionEngine = false
-	local manualGearbox = false
 	for index, powertrainComponent in self:iterateOverPowertrain() do
 		if powertrainComponent.componentSubType == "electricMotor" then
 			electricMotor = powertrainComponent
@@ -473,6 +484,9 @@ function car:applyAdjustments(adjustmentList)
 		electricMotor.params.maxTorque = adjustmentList.motor_maxTorque or electricMotor.params.maxTorque
 		electricMotor.params.maxPower = adjustmentList.motor_maxPower or electricMotor.params.maxPower
 		electricMotor.constraints.output.ratio = adjustmentList.motor_driveRatio or electricMotor.constraints.output.ratio
+	end
+	if combustionEngine then
+		combustionEngine.params.finalDrive = adjustmentList.engine_finalDriveRatio or combustionEngine.params.finalDrive
 	end
 end
 
