@@ -362,21 +362,29 @@ function game:updateScore(scoreMode, currentScore)
 	elseif scoreMode == "maxDistance" then
 		currentScore = math.max(currentScore, math.sqrt(currentGame.vehicle[1].body.state.x[0]^2+currentGame.vehicle[1].body.state.y[0]^2))
 	elseif scoreMode == "maxSuspensionTravel" then
-		if self.gameTime > 1 then
-			for index,axle in currentGame.vehicle[1]:iterateOverAxles() do
+		if not self.scoreOffset then self.scoreOffset = {} end
+		if self.gameTime > 1 and self.gameTime < 2 then self.offsetSamples = (self.offsetSamples or 0) + 1 end
+		for index,axle in currentGame.vehicle[1]:iterateOverAxles() do
+			if self.gameTime > 1 then
+				if not self.scoreOffset[index] then
+					self.scoreOffset[index] = axle.state.y[0]
+				end
+				if self.gameTime < 2 then
+					self.scoreOffset[index] = (self.scoreOffset[index]*(self.offsetSamples-1) + axle.state.y[0])/self.offsetSamples
+				end
 				currentScore = math.max(currentScore, math.abs(axle.state.y[0]-self.scoreOffset[index]))
-			end
-		else
-			if not self.scoreOffset then self.scoreOffset = {} end
-			for index,axle in currentGame.vehicle[1]:iterateOverAxles() do
-				self.scoreOffset[index] = (self.scoreOffset[index] or 0) + axle.state.y[0]/60
 			end
 		end
 	elseif scoreMode == "body_max_y_travel" then
 		if self.gameTime > 1 then
+			if not self.scoreOffset then
+				self.scoreOffset = currentGame.vehicle[1].body.state.y[0]
+			end
+			if self.gameTime < 2 then
+				self.offsetSamples = (self.offsetSamples or 0) + 1
+				self.scoreOffset = (self.scoreOffset*(self.offsetSamples-1) + currentGame.vehicle[1].body.state.y[0])/self.offsetSamples
+			end
 			currentScore = math.max(currentScore, math.abs(currentGame.vehicle[1].body.state.y[0]-self.scoreOffset))
-		else
-			self.scoreOffset = (self.scoreOffset or 0) + currentGame.vehicle[1].body.state.y[0]/60
 		end
 	elseif scoreMode == "time" then
 		currentScore = currentScore + am.delta_time

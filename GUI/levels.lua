@@ -263,7 +263,6 @@ function levels:createNormalLevel(levelData)
 	initialCondition = levelData.initialCondition or {},
 	}
 	part4MenuTable = {
-		am.rect(-400,-300,400,300,vec4(0,0.5,0.5,1)),
 		am.translate(vec2(0,200))^am.text("You passed\n"..(levelData.passText or ""),vec4(1,1,1,1),"center"),
 		newButton{
 			size=vec2(150,50),
@@ -279,8 +278,8 @@ function levels:createNormalLevel(levelData)
 		newButton{
 			size=vec2(150,50),
 			position=vec2(-75,-25),
-			colour=vec4(0.9,0.4,0.2,1),
-			label="Retry",
+			colour=vec4(1,0.8,0,1),
+			label="Restart",
 			labelColour=vec4(1,1,1,1),
 			clickFunction = 
 				function()
@@ -289,7 +288,7 @@ function levels:createNormalLevel(levelData)
 		},
 	}
 	if levelData.nextLevel then
-		part4MenuTable[5] = newButton{
+		part4MenuTable[4] = newButton{
 			size=vec2(150,50),
 			position=vec2(75,-25),
 			colour=vec4(0,0.9,0.4,1),
@@ -300,11 +299,19 @@ function levels:createNormalLevel(levelData)
 					currentLevel:nextLevel()
 				end
 		}
+	else
+		part4MenuTable[4] = newButton{
+			size=vec2(150,50),
+			position=vec2(75,-25),
+			colour=vec4(0.5,0.5,0.5,1),
+			label="No Next Level",
+			labelColour=vec4(0.3,0.3,0.3,1),
+		}
 	end
 	
 	levelTable[4] = menu:new(part4MenuTable)
 	levelTable[5] = menu:new{
-		am.rect(-400,-300,400,300,vec4(0.6,0.3,0,1)),
+		am.rect(-400,-300,400,300,vec4(0.3,0.3,0.3,1)),
 		am.translate(vec2(0,200))^am.text("You failed\n"..(levelData.failureText or ""),vec4(1,1,1,1),"center"),
 		newButton{
 			size=vec2(150,50),
@@ -320,8 +327,8 @@ function levels:createNormalLevel(levelData)
 		newButton{
 			size=vec2(150,50),
 			position=vec2(-75,-25),
-			colour=vec4(0.9,0.4,0.2,1),
-			label="Retry",
+			colour=vec4(1,0.8,0,1),
+			label="Restart",
 			labelColour=vec4(1,1,1,1),
 			clickFunction = 
 				function()

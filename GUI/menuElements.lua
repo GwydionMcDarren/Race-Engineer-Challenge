@@ -219,11 +219,18 @@ end
 	
 function wrappedText(str, colour, width)
 	local stringLength = string.len(str)
-	for i=1,math.floor(stringLength/width) do
-		local nextSpaceIndex = string.find(str," ",i*width)
-		if nextSpaceIndex then
+	local searchLocation = 0
+	local nextSpaceIndex = 0
+	local i = 0
+	while nextSpaceIndex and searchLocation < #str do
+		i=i+1
+		local nextSpaceIndex = string.find(str," ",searchLocation+width)
+		local nextNewlineIndex = (string.find(str,"\n",searchLocation) or math.huge)
+		if nextSpaceIndex and (nextSpaceIndex < nextNewlineIndex) then
 			str = string.sub(str,1,nextSpaceIndex-1).."\n"..string.sub(str,nextSpaceIndex+1,-1)
 		end
+		searchLocation = math.min((nextNewlineIndex or math.huge),(nextSpaceIndex or math.huge))+1
+		if i>50 then assert(false) end
 	end
 	local textNode = am.text(str, colour)
 	return textNode

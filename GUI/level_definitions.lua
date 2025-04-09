@@ -90,11 +90,12 @@ storedLevels = {}
 	scoreTest="lessThan",
 	endMode="maxSpeed",
 	endCondition=60/2.25,
+	initialCondition = {carPosition = -5},
 	nextLevel = "suspension2"
 }
 	levels:createNormalLevel{
 	name = "suspension2",
-	introText="You are driving a car over a large bump in the road. Adjust the spring stiffness to keep suspension travel to less than 0.25m as you cross it. In this level, the car will be travelling at 60mph",
+	introText="You are driving a car over a large bump in the road. Adjust the spring stiffness to keep suspension travel to less than 0.25m as you cross it. In this level, the car will be travelling at 60mph and you should try to keep a steady speed",
 	shortIntroText="Minimise suspension travel over the bump",
 	passText="Well done, a higher suspension stiffness reduces the suspension travel over bumps,\nhelping the wheels stay in contact with the road",
 	failureText="Your car's wheels bounced too much over the bump, meaning they lost contact with the road!\nCan you adjust the suspension stiffness so the wheels move less when they hit the bump?",
@@ -125,7 +126,7 @@ storedLevels = {}
 }
 	levels:createNormalLevel{
 	name = "suspension3",
-	introText="You are seting up a car to drive over the same large bump in the road. This time, adjust the spring stiffness to limit the movement of the body to less than 0.2m over the bump. In this level, the car will be travelling at 60mph",
+	introText="You are seting up a car to drive over the same large bump in the road. This time, adjust the spring stiffness to limit the movement of the body to less than 0.2m over the bump. In this level, the car will be travelling at 60mph and you should try to keep a steady speed",
 	shortIntroText="Minimise body movement over the bump",
 	passText="Well done, a lower suspension stiffness reduces the transmission\nof the bumps into the body, making the ride more comfortable",
 	failureText="Your car's body bounced too much over the bump, making the ride very uncomfortable!\nCan you adjust the suspension stiffness so the\nbody moves less when the car hits the bump?",

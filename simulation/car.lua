@@ -304,6 +304,9 @@ function car:createNode(adjustments)
 		if currentGame.initialCondition then
 			self.body.state.x[1] = currentGame.initialCondition.carSpeed or 0
 			self.body.state.x[0] = currentGame.initialCondition.carPosition or 0
+			for i, axle in self:iterateOverAxles() do
+				axle.state.theta[1] = (currentGame.initialCondition.carSpeed or 0) / axle.params.radius
+			end
 		end
 	end
 	if TELEMETRY then
