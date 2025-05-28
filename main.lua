@@ -2,15 +2,17 @@
 
 UNIT_TESTS = false
 DEBUG = false
-TELEMETRY = false
+TELEMETRY = true
 g = 9.81
-airDensity = 1.1 --kg/m^3
-frontalArea = 2 --m^2
-num_steps = 3
+airDensity = 1.3 --kg/m^3
+frontalArea = 2.29 --m^2
+num_steps = 4
+trueTimeStep = false --uses time_step instead of am.frame_delta/num_steps
+time_step = 0.005 --s
 
 win = am.window{
     title = "RE Challenge",
-    width = 800,
+    width = 1200,
     height = 600,
     clear_color = vec4( 0.2,0.7,0.9, 1 ),
     stencil_buffer = true

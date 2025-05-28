@@ -114,6 +114,23 @@ function createSinusoidalRoad(period,amplitude,length)
 	end
 	return {outputX, outputY}
 end
+
+function createSweepRoad(startFrequency, endFrequency, amplitude, startX, endX)
+	local outputX, outputY = {}, {}
+	for i=0,endX,1/(math.max(startFrequency,endFrequency)*10) do
+		table.insert(outputX,i)
+		local f = startFrequency
+		local a = amplitude
+		if i < startX then
+			a = amplitude*i/startX
+		else
+			f = ((endFrequency - startFrequency)/(endX-startX)) * (i - startX) + startFrequency
+		end
+		table.insert(outputY, a*math.sin(math.pi*2*i/f))
+	end
+	return {outputX,outputY}
+end	
+
 function uphillRoad(height,length)
 	local X, Y = {}, {}
 	local height = height or 20

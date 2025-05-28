@@ -196,7 +196,7 @@ end
 function  axle:calcAxleRoadDistance()
 	local axleXPos = self.calcs.getAxleXPos
 	local axleYPos = self.calcs.getAxleYPos
-	local roadHeight = win.scene"roadSurface":getHeight(axleXPos)
+	local roadHeight = win.scene"roadSurface":getHeight(axleXPos+self.params.radius*math.cos(self.calcs.getContactAngle))
 	local axleDistance = axleYPos - roadHeight
 	return axleDistance
 end

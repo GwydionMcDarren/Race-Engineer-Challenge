@@ -7,15 +7,17 @@ function newButton(buttonData)
 	buttonData.name = buttonData.name
 	buttonData.labelColour = buttonData.labelColour or vec4(0,0,0,1)
 	buttonData.clickFunction = buttonData.clickFunction or function() print("Button "..buttonData.label.." pressed") end
+	buttonData.releaseFunction = buttonData.releaseFunction or function() print("Button "..buttonData.label.." released") end
 	buttonData.get_value = function (self) return self.value end
 	buttonData.get_name = function (self) return self.name end
 	
-	local textNode = am.text(buttonData.label,buttonData.labelColour,"center","center")
-	if not buttonData.size then buttonData.size = vec2(textNode.width+16,textNode.height+16) end
+	local textNode = am.group{am.translate(vec2(1,-1))^am.text(buttonData.label,colourInvert(buttonData.labelColour),"center","center"),am.text(buttonData.label,buttonData.labelColour,"center","center")}
+	if not buttonData.size then buttonData.size = vec2(textNode"text".width+16,textNode"text".height+16) end
 	local buttonNode = am.translate(buttonData.position):tag("buttonLocation")^
 	am.group{am.rect(0,0,buttonData.size.x,buttonData.size.y,buttonData.colour):tag("buttonRectangle"),
 	am.translate(buttonData.size/2)^textNode,}
 	buttonNode.clickFunction = buttonData.clickFunction
+	buttonNode.releaseFunction = buttonData.releaseFunction
 	buttonNode:action( function (button)
 		local mouseX = win:mouse_position().x
 		local mouseY = win:mouse_position().y
@@ -25,6 +27,9 @@ function newButton(buttonData)
 			and mouseX <  button"buttonLocation".x+buttonWidth and mouseY < button"buttonLocation".y+buttonHeight then
 				if win:mouse_pressed("left") then
 					button:clickFunction()
+				end
+				if win:mouse_released("left") then
+					button:releaseFunction()
 				end
 			end
 	end
@@ -43,8 +48,8 @@ function newTextEntry(textEntryData)
 	textEntryData.colour = textEntryData.colour or vec4(1,1,1,1)
 	textEntryData.label = textEntryData.label or "Unnamed"
 	textEntryData.labelColour = textEntryData.labelColour or vec4(0,0,0,1)
-	local textNode = am.text(textEntryData.label,textEntryData.labelColour)
-	if not textEntryData.size then textEntryData.size = vec2(textNode.width+5,textNode.height+5) end
+	local textNode = am.group{am.translate(vec2(1,-1))^am.text(textEntryData.label,colourInvert(textEntryData.labelColour),"center","center"),am.text(textEntryData.label,textEntryData.labelColour,"center","center")}
+	if not textEntryData.size then textEntryData.size = vec2(textNode"text".width+5,textNode"text".height+5) end
 	local textEntryNode = am.translate(textEntryData.position):tag("textEntryLocation")^
 	am.group{am.rect(0,0,textEntryData.size.x,textEntryData.size.y,textEntryData.colour):tag("textEntryRectangle"),
 	am.translate(textEntryData.size/2)^textNode,}
@@ -203,7 +208,7 @@ function newRadioSelect(radioSelectData)
 end
 	
 function liveText(str, colour, firstData)
-	local textNode = am.text(str, colour)
+	local textNode = am.group{am.translate(vec2(1,-1))^am.text(str, vec4(0,0,0,1)),am.text(str, colour)}
 	local firstData = firstData or 1
 	textNode:action( function (liveTextNode)
 		liveTextNode.text = str
@@ -232,7 +237,7 @@ function wrappedText(str, colour, width)
 		searchLocation = math.min((nextNewlineIndex or math.huge),(nextSpaceIndex or math.huge))+1
 		if i>50 then assert(false) end
 	end
-	local textNode = am.text(str, colour)
+	local textNode = am.group{am.translate(vec2(1,-1))^am.text(str, vec4(0,0,0,1)),am.text(str, colour)}
 	return textNode
 end
 

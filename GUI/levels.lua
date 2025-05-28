@@ -254,6 +254,36 @@ function levels:createNormalLevel(levelData)
 					currentGame:quitLevel()
 				end
 		},
+		newButton{
+			size=vec2(200,600),
+			position=vec2(-600,-300),
+			colour=vec4(1,0,0,0.5),
+			label="Brake",
+			labelColour=vec4(1,1,1,1),
+			clickFunction = 
+				function()
+					carBrakeButtonPressed = true
+				end,
+			releaseFunction =
+				function()
+					carBrakeButtonPressed = false
+				end,
+		},
+		newButton{
+			size=vec2(200,600),
+			position=vec2(400,-300),
+			colour=vec4(0,1,0,0.5),
+			label="Accelerate",
+			labelColour=vec4(1,1,1,1),
+			clickFunction = 
+				function()
+					carAccelerateButtonPressed = true
+				end,
+			releaseFunction =
+				function()
+					carAccelerateButtonPressed = false
+				end,
+		},
 	},
 	endCondition = levelData.endCondition or 600,
 	endMode = levelData.endMode or "distance_x",

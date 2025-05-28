@@ -1,6 +1,8 @@
+-- Functions that calculate the forces at the road-wheel interface due to friction
+
 function tyreForce(axle,body,normalForce)
 	local longitudinalSlip = axle.calcs.getSlip
-	local peakSlip = 0.015
+	local peakSlip = 0.15
 	local slipDirection = math.sign(longitudinalSlip)
 	local longitudinalSlip = math.abs(longitudinalSlip)
 	--Positive slip means force acts forward on axle, negative slip means force acts backwards on axle
@@ -21,11 +23,12 @@ function tyreForce(axle,body,normalForce)
 end
 
 
-function rollingResistance(axle,body)
-	local R = axle.params.r
-	local V = body.state.x[1]
-	local c0 = 0
-	local c1 = 0
-	local resistiveForce = c0 + c1 * V^2
-	return resistiveForce
+function rollingResistance(axle,body,normalForce)
+	-- Assume that rolling resistance force is 2% of the vertical load
+	-- local R = axle.params.r
+	-- local V = body.state.x[1]
+	-- local c0 = 0
+	-- local c1 = 0
+	-- local resistiveForce = c0 + c1 * V^2
+	return normalForce * 0.02
 end

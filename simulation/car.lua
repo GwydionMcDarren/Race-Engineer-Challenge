@@ -273,12 +273,12 @@ function car:updateControls()
 		self.controls.gear_down = false
 	end
 	--other controls use key_down
-	if win:key_down("up") then
+	if win:key_down("up") or carAccelerateButtonPressed  then
 		self.controls.throttle = math.min(self.controls.throttle + 0.1,1)
 	else
 		self.controls.throttle = math.max(self.controls.throttle - 0.1,0)
 	end
-	if win:key_down("down") then
+	if win:key_down("down") or carBrakeButtonPressed then
 		self.controls.brake = math.min(self.controls.brake + 0.1,1)
 	else
 		self.controls.brake = math.max(self.controls.brake - 0.1,0)
@@ -307,6 +307,15 @@ function car:createNode(adjustments)
 			for i, axle in self:iterateOverAxles() do
 				axle.state.theta[1] = (currentGame.initialCondition.carSpeed or 0) / axle.params.radius
 			end
+			for i, powertrainPart in self:iterateOverPowertrain() do
+				if powertrainPart.constraints then
+					if powertrainPart.constraints.output then
+						if powertrainPart.constraints.output.type == "fixed-axle" then
+							powertrainPart.state.theta[1] = self.axles[powertrainPart.constraints.output.axles[1]].state.theta[1] * powertrainPart.constraints.output.ratio
+						end
+					end
+				end
+			end
 		end
 	end
 	if TELEMETRY then
@@ -320,10 +329,14 @@ function car:createNode(adjustments)
 	local carNode = am.group(am.translate(vec2(0,0))^am.rotate(0)^carParts,am.text(""))
 	carNode.parent = self
 	carNode:action( function (bodySprite)
-		ts = 1/(60*num_steps)
-		timestep = 0
-		while timestep <= am.delta_time do
-			timestep = timestep + self:solver(ts)
+		if trueTimeStep then
+			timestep = self:solver(time_step)
+		else
+			ts = 1/(60*num_steps)
+			timestep = 0
+			for i=1,num_steps do
+				timestep = timestep + self:solver(ts)
+			end
 		end
 		if TELEMETRY then
 			self.telemTime = self.telemTime + timestep

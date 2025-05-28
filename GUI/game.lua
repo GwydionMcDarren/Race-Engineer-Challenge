@@ -45,7 +45,7 @@ function game:start(data)
 		am.group{
 			am.rect(0,0,20,50,vec4(1,1,1,0.5)),
 			am.rect(30,0,50,50,vec4(1,1,1,0.5)),
-			am.rect(60,0,80,50,vec4(1,1,1,0.5)),
+			--am.rect(60,0,80,50,vec4(1,1,1,0.5)),
 			am.rect(0,0,20,50,vec4(0,1,0,1)):tag("throttleLevel"),
 			am.rect(30,0,50,50,vec4(1,0,0,1)):tag("brakeLevel"),
 			--am.rect(60,0,80,50,vec4(0,0,1,1)):tag("clutchLevel"),
@@ -261,7 +261,7 @@ function game:kill()
     --profiler:report( outfile )
     --outfile:close()
 	if TELEMETRY then
-		telemOutput = io.open("telemetryData.csv","w")
+		telemOutput = io.open("telemetryData"..(time_step or num_steps)..".csv","w")
 		for i,v in ipairs(self.vehicle[1].telem) do
 			for j,w in ipairs(v) do
 				telemOutput:write(w)
@@ -388,6 +388,8 @@ function game:updateScore(scoreMode, currentScore)
 		end
 	elseif scoreMode == "time" then
 		currentScore = currentScore + am.delta_time
+	elseif scoreMode == "telemTime" then
+		currentScore = (currentGame.vehicle[1].telemTime or 0)
 	elseif scoreMode == "x_distance" then
 		currentScore = currentGame.vehicle[1].body.state.x[0]
 	end

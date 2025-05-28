@@ -34,10 +34,10 @@ end
 mainMenu = menu:new{
 --Main title sprite
 am.translate(vec2(0,200))^am.sprite("graphics/RaceEngineerChallenge.png"),
-newButton{size=vec2(150,50),position=vec2(-75,0),colour=vec4(0,0.9,0.4,1),label="Challenges",labelColour=vec4(1,1,1,1), clickFunction = function() mainMenu:close() levelSelect:initialise() end},
-newButton{size=vec2(150,50),position=vec2(-75,-75),colour=vec4(0.5,0.5,0.5,1),label="Sandbox mode",labelColour=vec4(0.3,0.3,0.3,1), clickFunction = function()  end},
+newButton{size=vec2(300,100),position=vec2(-150,0),colour=vec4(0,0.9,0.4,1),label="Challenges",labelColour=vec4(1,1,1,1), clickFunction = function() mainMenu:close() levelSelect:initialise() end},
+newButton{size=vec2(300,100),position=vec2(-150,-100),colour=vec4(0.5,0.5,0.5,1),label="Sandbox mode",labelColour=vec4(0.3,0.3,0.3,1), clickFunction = function()  end, releaseFunction = function()  end},
 am.rect(-150,-100,150,-200,vec4(0.8,0.1,0.1,1)),
-am.translate(vec2(0,-150))^am.text("How to drive:\nAccelerate: UP arrow key\nBrake: DOWN arrow key\nGear up: A key\nGear down: Z key")}
+am.translate(vec2(0,-150))^am.text("How to drive:\nAccelerate: UP arrow key\nBrake: DOWN arrow key\nGear up: A key\nGear down: Z key\nOr use touch controls")}
 
 
 levelSelect = menu:new{

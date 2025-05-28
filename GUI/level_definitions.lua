@@ -161,18 +161,16 @@ storedLevels = {}
 	shortIntroText="Model Verification Tests",
 	car={
 		body="unitMass",
-		axles={"unitMass_wheel"},
-		powertrain="low_power_electric_motor",
+		axles={"unitMass_wheel","unitMass_wheel"},
+		powertrain="speed_limited_electric_motor",
 	},
-	roadSurface={
-		x = {0,1000},
-		y = {0,0}
-	},
-	scoreMode="maxSuspensionTravel",
-	scoreThreshold=2,
+	--initialCondition = {carSpeed = 80/2.25},
+	roadSurface={x={0,5000},y={0,0}},--{x=createSweepRoad(50,0.25,0.05,10,5010)[1],y=createSweepRoad(50,0.25,0.05,10,5010)[2]},
+	scoreMode="telemTime",
+	scoreThreshold=5,
 	scoreTest=nil,
-	endMode="time",
-	endCondition=10,
+	endMode="telemTime",
+	endCondition=5,
 }
 
 end

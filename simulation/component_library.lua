@@ -8,7 +8,7 @@ componentLibrary.bodies = {
 		mass = 1500, --kg
 		rInertia = 2.56*1500 - 1103, --kg m^2
 		axles = 2,
-		dragCoefficient = 0.3,
+		dragCoefficient =0,-- 0.3,
 		axleOffsets = {
 			vec2(68,-19-(static_vertical_displacement*83/(83+68))),
 			vec2(-83,-19-(static_vertical_displacement*68/(83+68)))
@@ -17,10 +17,10 @@ componentLibrary.bodies = {
 	},
 	hatchback = body:new{
 		name = "Compact Hatchback Body",
-		mass = 1300, --kg
-		rInertia = 2.56*1300 - 1103, --kg m^2
+		mass = 1500, --kg
+		rInertia = 2.56*1500 - 1103, --kg m^2
 		axles = 2,
-		dragCoefficient = 0.3,
+		dragCoefficient = 0.28,
 		axleOffsets = {
 			vec2(67,-18-(static_vertical_displacement*71/(67+71))),
 			vec2(-71,-18-(static_vertical_displacement*67/(71+67)))
@@ -56,10 +56,11 @@ componentLibrary.bodies = {
 		name = "Unit Mass Test Body",
 		mass = 1, --kg
 		rInertia = 1, --kg m^2
-		axles = 1,
+		axles = 2,
 		dragCoefficient = 0,
 		axleOffsets = {
-			vec2(0, 0),
+			vec2(-50, -5),
+			vec2(50, -5),
 		},
 		sprite = "graphics/wheel-marker.png",
 	},
@@ -70,10 +71,10 @@ componentLibrary.axles = {
 		name = "Basic wheel (640mm diameter)",
 		mass = 10,
 		rInertia = 10,
-		radius = 0.32,
+		radius = 0.3234,
 		springRate = 60e3,
 		dampingRate = 5e3,
-		maxBrakeTorque = 2e3,
+		maxBrakeTorque = 10e3,
 		tyreStiffness = 1e6,
 		sprite = "graphics/wheel-simple.png",
 		peakFriction = 1.22,
@@ -119,10 +120,10 @@ componentLibrary.axles = {
 		mass = 1,
 		rInertia = 1,
 		radius = 0.32,
-		springRate = 100,
-		dampingRate = 100,
+		springRate = 50,
+		dampingRate = 1,
 		maxBrakeTorque = 1,
-		tyreStiffness = 1e5,
+		tyreStiffness = 1e3,
 		sprite = "graphics/wheel-simple.png",
 	},
 }
@@ -130,7 +131,8 @@ componentLibrary.axles = {
 componentLibrary.powertrain = {
 	mini_electric_motor = {torquePowerLimitedMotorPowertrain:new(1, 1, 1, {1}, 1)},
 	low_power_electric_motor = {torquePowerLimitedMotorPowertrain:new(110e3, 320, 5, {1}, 8)},
-	speed_limited_electric_motor = {torquePowerLimitedMotorPowertrain:new(50e3, 450, 5, {1}, 8)},
+	nissan_leaf_electric_motor = {torquePowerLimitedMotorPowertrain:new(110e3, 320, 5, {1}, 8.193)},
+	speed_limited_electric_motor = {torquePowerLimitedMotorPowertrain:new(50e5, 200, 5, {1}, 2)},
 	high_power_electric_motor = {torquePowerLimitedMotorPowertrain:new(250e3, 200, 5, {1}, 7),torquePowerLimitedMotorPowertrain:new(250e3, 200, 5, {2}, 7)},
 	Z14XEP = {
 		combustionEngine:new(
